@@ -1,0 +1,9 @@
+# Regression suite: one plain-English goal per line. Run: python scripts/run_suite.py
+Test a partial refund on a captured order
+Verify I cannot refund more than the captured amount
+Fully refund a capture, then confirm a second refund is rejected
+Authorize 40 USD, capture 25 as a partial capture, then void the rest and check the states
+Capturing the same order twice must fail
+Simulate a declined card at capture time and check the error is handled
+A refund in a different currency than the capture must be rejected
+Creating an order with a zero amount must be rejected

@@ -1,0 +1,6 @@
+# Goals that surfaced surprising sandbox behaviour. Run: python scripts/run_suite.py examples/findings.txt
+#
+# Observed 2026-11-08: after refunding 10.00 of a 20.00 capture, a refund request for 20.00 (the original
+# capture amount) returned 201 COMPLETED but refunded only 10.00, while a request for 15.00 was rejected with
+# REFUND_AMOUNT_EXCEEDED. A merchant system that trusts the request amount would record the wrong refund.
+After refunding 10 of a 20 USD capture, a refund request for 20 USD must be rejected rather than partially applied

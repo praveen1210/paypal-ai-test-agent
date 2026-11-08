@@ -166,7 +166,7 @@ class FakePayPalClient(PayPalClient):
             return _error(422, "UNPROCESSABLE_ENTITY", "CAPTURE_FULLY_REFUNDED", "Already fully refunded.")
         req = body.get("amount")
         if req and req.get("currency_code") != currency:
-            return _error(422, "UNPROCESSABLE_ENTITY", "REFUND_CURRENCY_MISMATCH", "Currency mismatch.")
+            return _error(422, "UNPROCESSABLE_ENTITY", "REFUND_CAPTURE_CURRENCY_MISMATCH", "Currency mismatch.")
         value = Decimal(req["value"]) if req else remaining
         if value <= 0:
             return _error(422, "UNPROCESSABLE_ENTITY", "REFUND_AMOUNT_INVALID", "Must be > 0.")

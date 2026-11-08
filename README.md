@@ -36,9 +36,9 @@ payment integration works before it goes live.
 | CLI / Web | `cli.py`, `web.py`, `static/index.html` | `payagent "<goal>"` (exit code 0/1/2 for CI) and a one-page web UI with a JSON API. |
 
 ### AI tools used
-- **Claude (Anthropic API, `claude-opus-5-5`)** with tool use and adaptive thinking is the planning and reasoning
-  engine. It turns English into API sequences and explains failures. Server-side refusal fallback is on by
-  default (`ANTHROPIC_FALLBACKS=default`).
+- **Claude** with tool use and adaptive thinking is the planning and reasoning engine. It turns English into API
+  sequences and explains failures. The demo runs **Claude Haiku 5.5** through the Experiential Labs gateway
+  (Anthropic Messages API); any Claude model works by changing `ANTHROPIC_MODEL`.
 - **Claude Code** was used to scaffold and develop this repository.
 
 ## Setup
@@ -76,14 +76,25 @@ payagent "capture the same order twice must fail" --fake     # offline: no PayPa
 Exit codes: `0` PASS, `1` FAIL, `2` INCONCLUSIVE/setup error, so the CLI can run as a Jenkins/Azure DevOps step.
 Reports are written to `reports/<timestamp>-<goal>.md|.json`.
 
-Web UI:
+Regression suite (every goal in `examples/goals.txt`, summary table at the end, exit 0 only if all pass):
+
+```bash
+python scripts/run_suite.py
+```
+
+Web UI (the plan, each API call and each check stream in live while the agent works):
 
 ```bash
 uvicorn payagent.web:app --reload
 # open http://127.0.0.1:8000
 ```
 
-API: `POST /api/run {"goal": "...", "fake": false}` returns the full report JSON plus `markdown`.
+API:
+- `GET /api/run/stream?goal=...&fake=false` is a Server-Sent Events stream: `plan`, `step_started`,
+  `step_finished`, `check`, `agent_note`, then a final `result` (or `error`).
+- `POST /api/run {"goal": "...", "fake": false}` returns the full report JSON plus `markdown` in one response.
+
+Values in `.env` take priority over variables already set in your shell.
 
 Tests (offline, no keys):
 
@@ -98,9 +109,12 @@ ruff check .
 `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` and `ANTHROPIC_API_KEY` in the dashboard.
 
 ## Notes and limits
-- Card-funded orders use a sandbox test card (`PAYPAL_TEST_CARD_NUMBER`), so orders can be captured with no
-  buyer clicks. If your sandbox app rejects card payments, enable *Advanced Credit and Debit Card Payments* for
-  the sandbox app, or generate a card under Testing Tools → Credit Card Generator.
+- Card-funded orders use a sandbox test card (`PAYPAL_TEST_CARD_NUMBER`), so they complete with no buyer clicks.
+  In the sandbox, a card order with intent `CAPTURE` is captured at create time (status `COMPLETED`); the agent
+  knows this. If you get `PAYEE_NOT_ENABLED_FOR_CARD_PROCESSING`, your sandbox business account can't take cards:
+  create a **United States** sandbox business account and a new app linked to it.
+- Any Anthropic Messages-compatible endpoint works: set `ANTHROPIC_BASE_URL`, `ANTHROPIC_API_KEY` and
+  `ANTHROPIC_MODEL` (see `.env.example` for a gateway example).
 - `payment_method="paypal"` orders need a sandbox **buyer** to approve them in the browser. The CLI prints the
   link and waits (`wait_for_buyer_approval`).
 - The fake PayPal models common rules only. The real sandbox is the source of truth.

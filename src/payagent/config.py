@@ -28,7 +28,9 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> Settings:
-        load_dotenv()
+        # The project's .env wins over inherited shell variables (e.g. a stray ANTHROPIC_BASE_URL);
+        # hosted deploys have no .env, so their dashboard env vars apply unchanged.
+        load_dotenv(override=True)
         return cls(
             paypal_client_id=os.getenv("PAYPAL_CLIENT_ID", ""),
             paypal_client_secret=os.getenv("PAYPAL_CLIENT_SECRET", ""),

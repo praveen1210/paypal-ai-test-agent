@@ -105,7 +105,9 @@ def auto_checks(step: Step) -> list[Check]:
         checks = [
             _status_check(step, f"{step.tool} is rejected with a 4xx error", 400 <= resp.status < 500, "4xx"),
             _check(step, "Error body has PayPal 'name' field", "name", "exists"),
-            _check(step, "Error body has 'debug_id' for support tracing", "debug_id", "exists"),
+            Check("PayPal debug_id returned for support tracing (header or body)",
+                  bool(resp.debug_id or get_path(resp.body, "debug_id") is not _MISSING),
+                  "exists", resp.debug_id or display(get_path(resp.body, "debug_id")), step.id),
         ]
         if args.get("expected_issue"):
             issues = [d.get("issue") for d in (resp.body or {}).get("details", []) if isinstance(d, dict)]
