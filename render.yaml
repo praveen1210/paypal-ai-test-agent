@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: paypal-ai-test-agent
+    runtime: python
+    plan: free
+    buildCommand: pip install .
+    startCommand: uvicorn payagent.web:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: PAYPAL_BASE_URL
+        value: https://api-m.sandbox.paypal.com
+      - key: ANTHROPIC_MODEL
+        value: claude-opus-5-5

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Payment Test Agent</title>
+<style>
+  :root { --bg:#0f1420; --panel:#171e2e; --text:#e6e9ef; --muted:#93a0b8; --pass:#2fbf71; --fail:#ef5b5b; --warn:#f0b429; --accent:#3d8bfd; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { margin: 0 0 4px; font-size: 26px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .panel { background: var(--panel); border-radius: 12px; padding: 18px; margin-bottom: 18px; }
+  textarea { width:100%; min-height:70px; padding:12px; border-radius:8px; border:1px solid #2a3550; background:#0d1220; color:var(--text); font:inherit; resize:vertical; }
+  .row { display:flex; gap:12px; align-items:center; margin-top:12px; flex-wrap:wrap; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:10px 18px; font:inherit; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:wait; }
+  .chips button { background:#24304a; font-weight:400; padding:6px 10px; font-size:13px; }
+  .verdict { font-size:22px; font-weight:700; }
+  .PASS { color:var(--pass); } .FAIL { color:var(--fail); } .INCONCLUSIVE { color:var(--warn); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid #26304a; vertical-align:top; }
+  th { color:var(--muted); font-weight:500; }
+  code { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+  .finding { border-left:3px solid var(--warn); padding:6px 12px; margin:10px 0; }
+  .finding.critical, .finding.major { border-color: var(--fail); }
+  .muted { color: var(--muted); }
+  label { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>AI Payment Test Agent</h1>
+  <p class="sub">Describe a payment test in plain English. Claude plans it, runs it against the PayPal sandbox, validates every response and explains any bugs.</p>
+
+  <section class="panel">
+    <textarea id="goal" placeholder="e.g. Test a partial refund on a captured order"></textarea>
+    <div class="row chips" id="examples"></div>
+    <div class="row">
+      <button id="run">Run test</button>
+      <label><input type="checkbox" id="fake"> Use fake PayPal (offline demo)</label>
+      <span id="status" class="muted"></span>
+    </div>
+  </section>
+
+  <section id="result" hidden>
+    <div class="panel">
+      <div id="verdict" class="verdict"></div>
+      <div id="stats" class="muted"></div>
+      <p id="summary"></p>
+      <div id="findings"></div>
+    </div>
+    <div class="panel"><h3>Test plan</h3><ol id="plan"></ol></div>
+    <div class="panel"><h3>API steps</h3><table id="steps"></table></div>
+    <div class="panel"><h3>Checks</h3><table id="checks"></table></div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const el = (tag, text, cls) => { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; };
+const fmt = (v) => typeof v === "string" ? v : JSON.stringify(v);
+
+function row(table, cells, header = false) {
+  const tr = el("tr");
+  cells.forEach((c) => tr.appendChild(el(header ? "th" : "td", c)));
+  table.appendChild(tr);
+}
+
+fetch("/api/examples").then((r) => r.json()).then((goals) => {
+  goals.forEach((g) => { const b = el("button", g); b.type = "button"; b.onclick = () => { $("goal").value = g; }; $("examples").appendChild(b); });
+});
+
+$("run").onclick = async () => {
+  const goal = $("goal").value.trim();
+  if (goal.length < 5) { $("status").textContent = "Enter a test goal first."; return; }
+  $("run").disabled = true; $("result").hidden = true;
+  $("status").textContent = "Agent is planning and calling PayPal… (30–90s)";
+  try {
+    const res = await fetch("/api/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ goal, fake: $("fake").checked }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+    render(data); $("status").textContent = "";
+  } catch (e) { $("status").textContent = "Error: " + e.message; }
+  finally { $("run").disabled = false; }
+};
+
+function render(d) {
+  $("result").hidden = false;
+  $("verdict").textContent = d.verdict; $("verdict").className = "verdict " + d.verdict;
+  const passed = d.checks.filter((c) => c.passed).length;
+  $("stats").textContent = `${passed}/${d.checks.length} checks passed · ${d.steps.length} API calls · ${d.model}` + (d.agent_error ? ` · ${d.agent_error}` : "");
+  $("summary").textContent = d.summary;
+  $("findings").replaceChildren(...d.findings.map((f) => {
+    const box = el("div", undefined, "finding " + f.severity);
+    box.appendChild(el("strong", `[${f.severity.toUpperCase()}] ${f.title}`));
+    box.appendChild(el("div", f.explanation));
+    return box;
+  }));
+  $("plan").replaceChildren(...d.plan.map((s) => el("li", s)));
+  const steps = $("steps"); steps.replaceChildren();
+  row(steps, ["Step", "Call", "Expect", "HTTP", "Debug ID", "Checks"], true);
+  d.steps.forEach((s) => {
+    const r = s.response;
+    const ok = s.checks.filter((c) => c.passed).length;
+    row(steps, [s.id, r ? `${r.method} ${r.path}` : s.tool, s.expect, r ? String(r.status) : "ERR", r ? (r.debug_id || "") : "", `${ok}/${s.checks.length}`]);
+  });
+  const checks = $("checks"); checks.replaceChildren();
+  row(checks, ["", "Step", "Check", "Expected", "Actual"], true);
+  d.checks.forEach((c) => row(checks, [c.passed ? "✅" : "❌", c.step_id || "", c.description, fmt(c.expected), fmt(c.actual)]));
+}
+</script>
+</body>
+</html>
