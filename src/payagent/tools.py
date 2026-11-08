@@ -9,7 +9,7 @@ from typing import Any
 
 from .models import Check, Finding, RunResult, Step
 from .paypal_client import PayPalAuthError, PayPalClient
-from .validator import OPERATORS, auto_checks, display, evaluate, get_path
+from .validator import _MISSING, OPERATORS, auto_checks, display, evaluate, get_path
 
 EventSink = Callable[[str, dict[str, Any]], None]
 
@@ -238,6 +238,14 @@ class ToolExecutor:
             actual: Any = step.response.status
         else:
             actual = get_path(step.response.body, args["path"])
+        if actual is _MISSING and args["operator"] not in {"exists", "not_exists"}:
+            # A wrong path is a broken test, not a product failure: let the agent fix it.
+            body = step.response.body
+            keys = sorted(body) if isinstance(body, dict) else []
+            raise ValueError(
+                f"path '{args['path']}' is not in the {step.id} response, so nothing was recorded. "
+                f"Top-level keys: {keys}. Fix the path, or use operator 'exists' if the field's absence is the bug."
+            )
         passed = evaluate(args["operator"], actual, args.get("expected"))
         check = Check(description=args["description"], passed=passed, expected=args.get("expected"),
                       actual=display(actual), step_id=step.id, source="agent")

@@ -39,3 +39,19 @@ def test_negative_test_passes_on_expected_error():
 def test_negative_test_fails_when_api_accepts():
     step = _step("refund_capture", 201, {"status": "COMPLETED"}, expect="error")
     assert not all(c.passed for c in auto_checks(step))
+
+
+def test_assert_on_missing_path_is_a_test_error_not_a_failure():
+    from payagent.models import RunResult
+    from payagent.tools import ToolExecutor
+
+    result = RunResult(goal="g", started_at="t")
+    result.steps.append(Step(id="S1", tool="get_refund", args={}, expect="success",
+                             response=ApiResponse("GET", "/r", 200, {"id": "R1", "status": "COMPLETED"})))
+    ex = ToolExecutor(paypal=None, result=result)
+    content, is_error = ex.execute("assert_field", {"step_id": "S1", "path": "capture_id", "operator": "equals",
+                                                    "expected": "C1", "description": "linked"})
+    assert is_error and "Top-level keys" in content and result.checks == []
+    _, is_error = ex.execute("assert_field", {"step_id": "S1", "path": "capture_id", "operator": "exists",
+                                              "description": "capture_id present"})
+    assert not is_error and result.checks[-1].passed is False

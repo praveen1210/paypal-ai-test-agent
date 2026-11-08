@@ -52,6 +52,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", help="Reports directory (default: REPORTS_DIR or ./reports).")
     parser.add_argument("--quiet", action="store_true", help="Only print the final report.")
     args = parser.parse_args(argv)
+    # Windows consoles default to cp1252 and crash on the report's emoji.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
 
     settings = Settings.from_env()
     overrides: dict[str, Any] = {}
@@ -69,8 +73,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Setup error: {exc}", file=sys.stderr)
         return 2
 
+    md_path, json_path = save(result, settings.reports_dir)  # save first so a print error can't lose it
     print("\n" + to_markdown(result))
-    md_path, json_path = save(result, settings.reports_dir)
     print(f"Report saved: {md_path}\nJSON:         {json_path}")
     return EXIT[result.verdict]
 
