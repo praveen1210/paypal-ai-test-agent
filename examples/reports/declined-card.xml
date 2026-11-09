@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="payagent" tests="20" failures="0" errors="0">
+  <testsuite name="Simulate a declined card at capture time and check the error is handled" tests="20" failures="0" errors="0" skipped="0" timestamp="2026-11-09T16:53:06+00:00" time="23.0">
+    <properties>
+      <property name="verdict" value="PASS" />
+      <property name="model" value="claude-haiku-5.5" />
+      <property name="api_steps" value="5" />
+    </properties>
+    <testcase classname="payagent.create_order" name="S1: create_order returns HTTP 2xx" />
+    <testcase classname="payagent.create_order" name="S1: Order id is returned" />
+    <testcase classname="payagent.create_order" name="S1: Order status is valid after create" />
+    <testcase classname="payagent.create_order" name="S1: Order amount matches request" />
+    <testcase classname="payagent.create_order" name="S1: Order currency matches request" />
+    <testcase classname="payagent.capture_order" name="S2: capture_order is rejected with a 4xx error" />
+    <testcase classname="payagent.capture_order" name="S2: Error body has PayPal 'name' field" />
+    <testcase classname="payagent.capture_order" name="S2: PayPal debug_id returned for support tracing (header or body)" />
+    <testcase classname="payagent.capture_order" name="S2: Error issue code is INSTRUMENT_DECLINED" />
+    <testcase classname="payagent.create_order" name="S3: create_order is rejected with a 4xx error" />
+    <testcase classname="payagent.create_order" name="S3: Error body has PayPal 'name' field" />
+    <testcase classname="payagent.create_order" name="S3: PayPal debug_id returned for support tracing (header or body)" />
+    <testcase classname="payagent.create_order" name="S3: Error issue code is INSTRUMENT_DECLINED" />
+    <testcase classname="payagent.get_order" name="S4: get_order returns HTTP 2xx" />
+    <testcase classname="payagent.get_order" name="S4: Fetched resource id matches" />
+    <testcase classname="payagent.get_capture" name="S5: get_capture returns HTTP 2xx" />
+    <testcase classname="payagent.get_capture" name="S5: Fetched resource id matches" />
+    <testcase classname="payagent.capture_order" name="S2: Capture-time decline returns INSTRUMENT_DECLINED issue code" />
+    <testcase classname="payagent.get_order" name="S4: Baseline order remains COMPLETED after declined capture attempt" />
+    <testcase classname="payagent.get_capture" name="S5: Capture remains COMPLETED and not refunded/reversed after declined attempt" />
+    <system-out>Tested how a declined card is handled at capture time in the PayPal sandbox. Card orders are charged at create time, so a true capture-time decline was simulated by calling capture_order on an existing order with the INSTRUMENT_DECLINED mock. PayPal rejected it with HTTP 422, issue INSTRUMENT_DECLINED and a debug_id, which is the expected error shape. The create-time decline control (S3) was also rejected with the same 422/INSTRUMENT_DECLINED response. The previously successful order (0AB67962YR4285836) and its capture (16S56782J6857735Y) remained COMPLETED with the original $10.00 amount, so the failed attempt did not corrupt existing state.
+
+[INFO] Declined capture returns a structured, handleable error: S2 returned HTTP 422 UNPROCESSABLE_ENTITY with details[0].issue=INSTRUMENT_DECLINED, a description, and a debug_id. The error is machine-readable and includes a support trace id, so the merchant can branch on the issue code and show a decline message. The same error shape appeared on create-time decline (S3).
+
+[INFO] Existing captured order is unaffected by a declined capture attempt: After the declined capture (S2), S4 and S5 show the order and capture still COMPLETED for $10.00 with no refund or reversal. The failed attempt did not change state.</system-out>
+  </testsuite>
+</testsuites>

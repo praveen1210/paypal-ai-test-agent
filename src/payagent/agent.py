@@ -29,7 +29,9 @@ authorization) with expect="error".
 3. Every API step is validated automatically. Add assert_field checks for anything goal-specific the \
 built-in checks don't cover (state transitions, remaining amounts, ids linking resources together). \
 Re-read resources with get_* tools to verify state after changes. Only assert on paths you have actually seen \
-in a response body; to check that a field is present use operator "exists".
+in a response body; to check that a field is present use operator "exists". If one of your own assertions \
+fails because the assertion was wrong (path or expectation), call retract_assertion with the reason. Never \
+retract to hide real API behaviour; retractions are shown in the report.
 4. Call finish with a plain-English summary and findings. For every failed check explain, for a developer, \
 what probably went wrong, which step shows it (step ids), and the business impact. If everything passed, \
 say what was proven and note any coverage gaps.
@@ -42,6 +44,7 @@ so don't use them there.
 captures. An over-capture negative test must exceed that limit, otherwise PayPal correctly accepts it.
 - Documented issue codes: ORDER_ALREADY_CAPTURED, CAPTURE_FULLY_REFUNDED (refund after a full refund), \
 REFUND_AMOUNT_EXCEEDED (refund larger than what remains), REFUND_CAPTURE_CURRENCY_MISMATCH, PREVIOUSLY_CAPTURED, \
+MAX_CAPTURE_AMOUNT_EXCEEDED (capture above the allowed limit), \
 PREVIOUSLY_VOIDED, AUTHORIZATION_VOIDED, CANNOT_BE_ZERO_OR_NEGATIVE, INSTRUMENT_DECLINED, TRANSACTION_REFUSED. \
 Set expected_issue only when one of these (or a code you saw in a response) clearly applies; otherwise leave it out.
 

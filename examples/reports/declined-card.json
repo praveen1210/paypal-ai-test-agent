@@ -1,0 +1,881 @@
+{
+  "goal": "Simulate a declined card at capture time and check the error is handled",
+  "started_at": "2026-11-09T16:53:06+00:00",
+  "finished_at": "2026-11-09T16:53:29+00:00",
+  "model": "claude-haiku-5.5",
+  "steps": [
+    {
+      "id": "S1",
+      "tool": "create_order",
+      "args": {
+        "amount": "10.00",
+        "currency": "USD",
+        "intent": "CAPTURE",
+        "payment_method": "card"
+      },
+      "expect": "success",
+      "response": {
+        "method": "POST",
+        "path": "/v2/checkout/orders",
+        "status": 201,
+        "body": {
+          "id": "0AB67962YR4285836",
+          "intent": "CAPTURE",
+          "status": "COMPLETED",
+          "payment_source": {
+            "card": {
+              "name": "Sandbox Tester",
+              "last_digits": "1111",
+              "expiry": "2030-12",
+              "brand": "VISA",
+              "type": "CREDIT",
+              "bin_details": {}
+            }
+          },
+          "purchase_units": [
+            {
+              "reference_id": "default",
+              "amount": {
+                "currency_code": "USD",
+                "value": "10.00"
+              },
+              "payee": {
+                "email_address": "sb-ov4ue53787861@business.example.com",
+                "merchant_id": "5JAP36CHEPYNQ"
+              },
+              "soft_descriptor": "TEST STORE",
+              "supplementary_data": {
+                "risk": {
+                  "risk_level_indicator": "HIGH_RISK"
+                }
+              },
+              "payments": {
+                "captures": [
+                  {
+                    "id": "16S56782J6857735Y",
+                    "status": "COMPLETED",
+                    "amount": {
+                      "currency_code": "USD",
+                      "value": "10.00"
+                    },
+                    "final_capture": true,
+                    "seller_protection": {
+                      "status": "NOT_ELIGIBLE"
+                    },
+                    "seller_receivable_breakdown": {
+                      "gross_amount": {
+                        "currency_code": "USD",
+                        "value": "10.00"
+                      },
+                      "paypal_fee": {
+                        "currency_code": "USD",
+                        "value": "0.75"
+                      },
+                      "net_amount": {
+                        "currency_code": "USD",
+                        "value": "9.25"
+                      }
+                    },
+                    "links": [
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/captures/16S56782J6857735Y",
+                        "rel": "self",
+                        "method": "GET"
+                      },
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/captures/16S56782J6857735Y/refund",
+                        "rel": "refund",
+                        "method": "POST"
+                      },
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/checkout/orders/0AB67962YR4285836",
+                        "rel": "up",
+                        "method": "GET"
+                      }
+                    ],
+                    "create_time": "2026-11-09T16:53:14Z",
+                    "update_time": "2026-11-09T16:53:14Z",
+                    "network_transaction_reference": {
+                      "id": "095044597542920",
+                      "network": "VISA"
+                    },
+                    "processor_response": {
+                      "avs_code": "A",
+                      "cvv_code": "M",
+                      "response_code": "0000"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "create_time": "2026-11-09T16:53:14Z",
+          "update_time": "2026-11-09T16:53:14Z",
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v2/checkout/orders/0AB67962YR4285836",
+              "rel": "self",
+              "method": "GET"
+            }
+          ]
+        },
+        "debug_id": "ca57e5507f905",
+        "request_body": {
+          "intent": "CAPTURE",
+          "purchase_units": [
+            {
+              "reference_id": "default",
+              "amount": {
+                "currency_code": "USD",
+                "value": "10.00"
+              }
+            }
+          ],
+          "payment_source": {
+            "card": {
+              "number": "************1111",
+              "expiry": "2030-12",
+              "name": "Sandbox Tester",
+              "billing_address": {
+                "address_line_1": "1 Main St",
+                "admin_area_2": "San Jose",
+                "admin_area_1": "CA",
+                "postal_code": "95131",
+                "country_code": "US"
+              }
+            }
+          }
+        },
+        "duration_ms": 4357
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "create_order returns HTTP 2xx",
+          "passed": true,
+          "expected": "2xx",
+          "actual": 201,
+          "step_id": "S1",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Order id is returned",
+          "passed": true,
+          "expected": "exists",
+          "actual": "0AB67962YR4285836",
+          "step_id": "S1",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Order status is valid after create",
+          "passed": true,
+          "expected": [
+            "CREATED",
+            "APPROVED",
+            "PAYER_ACTION_REQUIRED",
+            "COMPLETED"
+          ],
+          "actual": "COMPLETED",
+          "step_id": "S1",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Order amount matches request",
+          "passed": true,
+          "expected": "10.00",
+          "actual": "10.00",
+          "step_id": "S1",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Order currency matches request",
+          "passed": true,
+          "expected": "USD",
+          "actual": "USD",
+          "step_id": "S1",
+          "source": "auto",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "tool": "capture_order",
+      "args": {
+        "order_id": "0AB67962YR4285836",
+        "mock_error": "INSTRUMENT_DECLINED",
+        "expect": "error",
+        "expected_issue": "INSTRUMENT_DECLINED"
+      },
+      "expect": "error",
+      "response": {
+        "method": "POST",
+        "path": "/v2/checkout/orders/0AB67962YR4285836/capture",
+        "status": 422,
+        "body": {
+          "name": "UNPROCESSABLE_ENTITY",
+          "details": [
+            {
+              "issue": "INSTRUMENT_DECLINED",
+              "description": "The instrument presented  was either declined by the processor or bank, or it can't be used for this payment."
+            }
+          ],
+          "message": "The requested action could not be performed, semantically incorrect, or failed business validation.",
+          "debug_id": "3fc230ceac4f5",
+          "links": [
+            {
+              "href": "https://developer.paypal.com/docs/api/orders/v2/#error-INSTRUMENT_DECLINED",
+              "rel": "information_link",
+              "method": "GET"
+            }
+          ]
+        },
+        "debug_id": "ca57e553248a2",
+        "request_body": {},
+        "duration_ms": 986
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "capture_order is rejected with a 4xx error",
+          "passed": true,
+          "expected": "4xx",
+          "actual": 422,
+          "step_id": "S2",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Error body has PayPal 'name' field",
+          "passed": true,
+          "expected": "exists",
+          "actual": "UNPROCESSABLE_ENTITY",
+          "step_id": "S2",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "PayPal debug_id returned for support tracing (header or body)",
+          "passed": true,
+          "expected": "exists",
+          "actual": "ca57e553248a2",
+          "step_id": "S2",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Error issue code is INSTRUMENT_DECLINED",
+          "passed": true,
+          "expected": "INSTRUMENT_DECLINED",
+          "actual": [
+            "INSTRUMENT_DECLINED"
+          ],
+          "step_id": "S2",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Capture-time decline returns INSTRUMENT_DECLINED issue code",
+          "passed": true,
+          "expected": "INSTRUMENT_DECLINED",
+          "actual": "INSTRUMENT_DECLINED",
+          "step_id": "S2",
+          "source": "agent",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "tool": "create_order",
+      "args": {
+        "amount": "10.00",
+        "currency": "USD",
+        "intent": "CAPTURE",
+        "payment_method": "card",
+        "mock_error": "INSTRUMENT_DECLINED",
+        "expect": "error",
+        "expected_issue": "INSTRUMENT_DECLINED"
+      },
+      "expect": "error",
+      "response": {
+        "method": "POST",
+        "path": "/v2/checkout/orders",
+        "status": 422,
+        "body": {
+          "name": "UNPROCESSABLE_ENTITY",
+          "details": [
+            {
+              "issue": "INSTRUMENT_DECLINED",
+              "description": "The instrument presented  was either declined by the processor or bank, or it can't be used for this payment."
+            }
+          ],
+          "message": "The requested action could not be performed, semantically incorrect, or failed business validation.",
+          "debug_id": "70c28ae654da",
+          "links": [
+            {
+              "href": "https://developer.paypal.com/api/rest/reference/orders/v2/errors/#INSTRUMENT_DECLINED",
+              "rel": "information_link",
+              "method": "GET"
+            }
+          ]
+        },
+        "debug_id": "ca57e55387939",
+        "request_body": {
+          "intent": "CAPTURE",
+          "purchase_units": [
+            {
+              "reference_id": "default",
+              "amount": {
+                "currency_code": "USD",
+                "value": "10.00"
+              }
+            }
+          ],
+          "payment_source": {
+            "card": {
+              "number": "************1111",
+              "expiry": "2030-12",
+              "name": "Sandbox Tester",
+              "billing_address": {
+                "address_line_1": "1 Main St",
+                "admin_area_2": "San Jose",
+                "admin_area_1": "CA",
+                "postal_code": "95131",
+                "country_code": "US"
+              }
+            }
+          }
+        },
+        "duration_ms": 407
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "create_order is rejected with a 4xx error",
+          "passed": true,
+          "expected": "4xx",
+          "actual": 422,
+          "step_id": "S3",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Error body has PayPal 'name' field",
+          "passed": true,
+          "expected": "exists",
+          "actual": "UNPROCESSABLE_ENTITY",
+          "step_id": "S3",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "PayPal debug_id returned for support tracing (header or body)",
+          "passed": true,
+          "expected": "exists",
+          "actual": "ca57e55387939",
+          "step_id": "S3",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Error issue code is INSTRUMENT_DECLINED",
+          "passed": true,
+          "expected": "INSTRUMENT_DECLINED",
+          "actual": [
+            "INSTRUMENT_DECLINED"
+          ],
+          "step_id": "S3",
+          "source": "auto",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "tool": "get_order",
+      "args": {
+        "order_id": "0AB67962YR4285836"
+      },
+      "expect": "success",
+      "response": {
+        "method": "GET",
+        "path": "/v2/checkout/orders/0AB67962YR4285836",
+        "status": 200,
+        "body": {
+          "id": "0AB67962YR4285836",
+          "intent": "CAPTURE",
+          "status": "COMPLETED",
+          "payment_source": {
+            "card": {
+              "name": "Sandbox Tester",
+              "last_digits": "1111",
+              "expiry": "2030-12",
+              "brand": "VISA",
+              "type": "UNKNOWN",
+              "bin_details": {}
+            }
+          },
+          "purchase_units": [
+            {
+              "reference_id": "default",
+              "amount": {
+                "currency_code": "USD",
+                "value": "10.00",
+                "breakdown": {}
+              },
+              "payee": {
+                "email_address": "sb-ov4ue53787861@business.example.com",
+                "merchant_id": "5JAP36CHEPYNQ"
+              },
+              "soft_descriptor": "TEST STORE",
+              "supplementary_data": {
+                "risk": {
+                  "risk_level_indicator": "HIGH_RISK"
+                }
+              },
+              "payments": {
+                "captures": [
+                  {
+                    "id": "16S56782J6857735Y",
+                    "status": "COMPLETED",
+                    "amount": {
+                      "currency_code": "USD",
+                      "value": "10.00"
+                    },
+                    "final_capture": true,
+                    "seller_protection": {
+                      "status": "NOT_ELIGIBLE"
+                    },
+                    "seller_receivable_breakdown": {
+                      "gross_amount": {
+                        "currency_code": "USD",
+                        "value": "10.00"
+                      },
+                      "paypal_fee": {
+                        "currency_code": "USD",
+                        "value": "0.75"
+                      },
+                      "net_amount": {
+                        "currency_code": "USD",
+                        "value": "9.25"
+                      }
+                    },
+                    "links": [
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/captures/16S56782J6857735Y",
+                        "rel": "self",
+                        "method": "GET"
+                      },
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/captures/16S56782J6857735Y/refund",
+                        "rel": "refund",
+                        "method": "POST"
+                      },
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/checkout/orders/0AB67962YR4285836",
+                        "rel": "up",
+                        "method": "GET"
+                      }
+                    ],
+                    "create_time": "2026-11-09T16:53:12Z",
+                    "update_time": "2026-11-09T16:53:12Z",
+                    "network_transaction_reference": {
+                      "id": "095044597542920",
+                      "network": "VISA"
+                    },
+                    "processor_response": {
+                      "avs_code": "A",
+                      "cvv_code": "M",
+                      "response_code": "0000"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "create_time": "2026-11-09T16:53:12Z",
+          "update_time": "2026-11-09T16:53:12Z",
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v2/checkout/orders/0AB67962YR4285836",
+              "rel": "self",
+              "method": "GET"
+            }
+          ]
+        },
+        "debug_id": "ca57e55494cf0",
+        "request_body": null,
+        "duration_ms": 853
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "get_order returns HTTP 2xx",
+          "passed": true,
+          "expected": "2xx",
+          "actual": 200,
+          "step_id": "S4",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Fetched resource id matches",
+          "passed": true,
+          "expected": "0AB67962YR4285836",
+          "actual": "0AB67962YR4285836",
+          "step_id": "S4",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Baseline order remains COMPLETED after declined capture attempt",
+          "passed": true,
+          "expected": "COMPLETED",
+          "actual": "COMPLETED",
+          "step_id": "S4",
+          "source": "agent",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S5",
+      "tool": "get_capture",
+      "args": {
+        "capture_id": "16S56782J6857735Y"
+      },
+      "expect": "success",
+      "response": {
+        "method": "GET",
+        "path": "/v2/payments/captures/16S56782J6857735Y",
+        "status": 200,
+        "body": {
+          "id": "16S56782J6857735Y",
+          "amount": {
+            "currency_code": "USD",
+            "value": "10.00"
+          },
+          "final_capture": true,
+          "seller_protection": {
+            "status": "NOT_ELIGIBLE"
+          },
+          "seller_receivable_breakdown": {
+            "gross_amount": {
+              "currency_code": "USD",
+              "value": "10.00"
+            },
+            "paypal_fee": {
+              "currency_code": "USD",
+              "value": "0.75"
+            },
+            "net_amount": {
+              "currency_code": "USD",
+              "value": "9.25"
+            }
+          },
+          "status": "COMPLETED",
+          "processor_response": {
+            "avs_code": "A",
+            "cvv_code": "M",
+            "response_code": "0000"
+          },
+          "supplementary_data": {
+            "related_ids": {
+              "order_id": "0AB67962YR4285836"
+            }
+          },
+          "payee": {
+            "email_address": "sb-ov4ue53787861@business.example.com",
+            "merchant_id": "5JAP36CHEPYNQ"
+          },
+          "create_time": "2026-11-09T16:53:12Z",
+          "update_time": "2026-11-09T16:53:12Z",
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/captures/16S56782J6857735Y",
+              "rel": "self",
+              "method": "GET"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/captures/16S56782J6857735Y/refund",
+              "rel": "refund",
+              "method": "POST"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/checkout/orders/0AB67962YR4285836",
+              "rel": "up",
+              "method": "GET"
+            }
+          ],
+          "network_transaction_reference": {
+            "id": "095044597542920",
+            "network": "VISA"
+          }
+        },
+        "debug_id": "ca57e554e9b7f",
+        "request_body": null,
+        "duration_ms": 559
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "get_capture returns HTTP 2xx",
+          "passed": true,
+          "expected": "2xx",
+          "actual": 200,
+          "step_id": "S5",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Fetched resource id matches",
+          "passed": true,
+          "expected": "16S56782J6857735Y",
+          "actual": "16S56782J6857735Y",
+          "step_id": "S5",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Capture remains COMPLETED and not refunded/reversed after declined attempt",
+          "passed": true,
+          "expected": "COMPLETED",
+          "actual": "COMPLETED",
+          "step_id": "S5",
+          "source": "agent",
+          "retracted": null
+        }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "description": "create_order returns HTTP 2xx",
+      "passed": true,
+      "expected": "2xx",
+      "actual": 201,
+      "step_id": "S1",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Order id is returned",
+      "passed": true,
+      "expected": "exists",
+      "actual": "0AB67962YR4285836",
+      "step_id": "S1",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Order status is valid after create",
+      "passed": true,
+      "expected": [
+        "CREATED",
+        "APPROVED",
+        "PAYER_ACTION_REQUIRED",
+        "COMPLETED"
+      ],
+      "actual": "COMPLETED",
+      "step_id": "S1",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Order amount matches request",
+      "passed": true,
+      "expected": "10.00",
+      "actual": "10.00",
+      "step_id": "S1",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Order currency matches request",
+      "passed": true,
+      "expected": "USD",
+      "actual": "USD",
+      "step_id": "S1",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "capture_order is rejected with a 4xx error",
+      "passed": true,
+      "expected": "4xx",
+      "actual": 422,
+      "step_id": "S2",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Error body has PayPal 'name' field",
+      "passed": true,
+      "expected": "exists",
+      "actual": "UNPROCESSABLE_ENTITY",
+      "step_id": "S2",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "PayPal debug_id returned for support tracing (header or body)",
+      "passed": true,
+      "expected": "exists",
+      "actual": "ca57e553248a2",
+      "step_id": "S2",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Error issue code is INSTRUMENT_DECLINED",
+      "passed": true,
+      "expected": "INSTRUMENT_DECLINED",
+      "actual": [
+        "INSTRUMENT_DECLINED"
+      ],
+      "step_id": "S2",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "create_order is rejected with a 4xx error",
+      "passed": true,
+      "expected": "4xx",
+      "actual": 422,
+      "step_id": "S3",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Error body has PayPal 'name' field",
+      "passed": true,
+      "expected": "exists",
+      "actual": "UNPROCESSABLE_ENTITY",
+      "step_id": "S3",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "PayPal debug_id returned for support tracing (header or body)",
+      "passed": true,
+      "expected": "exists",
+      "actual": "ca57e55387939",
+      "step_id": "S3",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Error issue code is INSTRUMENT_DECLINED",
+      "passed": true,
+      "expected": "INSTRUMENT_DECLINED",
+      "actual": [
+        "INSTRUMENT_DECLINED"
+      ],
+      "step_id": "S3",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "get_order returns HTTP 2xx",
+      "passed": true,
+      "expected": "2xx",
+      "actual": 200,
+      "step_id": "S4",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Fetched resource id matches",
+      "passed": true,
+      "expected": "0AB67962YR4285836",
+      "actual": "0AB67962YR4285836",
+      "step_id": "S4",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "get_capture returns HTTP 2xx",
+      "passed": true,
+      "expected": "2xx",
+      "actual": 200,
+      "step_id": "S5",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Fetched resource id matches",
+      "passed": true,
+      "expected": "16S56782J6857735Y",
+      "actual": "16S56782J6857735Y",
+      "step_id": "S5",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Capture-time decline returns INSTRUMENT_DECLINED issue code",
+      "passed": true,
+      "expected": "INSTRUMENT_DECLINED",
+      "actual": "INSTRUMENT_DECLINED",
+      "step_id": "S2",
+      "source": "agent",
+      "retracted": null
+    },
+    {
+      "description": "Baseline order remains COMPLETED after declined capture attempt",
+      "passed": true,
+      "expected": "COMPLETED",
+      "actual": "COMPLETED",
+      "step_id": "S4",
+      "source": "agent",
+      "retracted": null
+    },
+    {
+      "description": "Capture remains COMPLETED and not refunded/reversed after declined attempt",
+      "passed": true,
+      "expected": "COMPLETED",
+      "actual": "COMPLETED",
+      "step_id": "S5",
+      "source": "agent",
+      "retracted": null
+    }
+  ],
+  "findings": [
+    {
+      "title": "Declined capture returns a structured, handleable error",
+      "severity": "info",
+      "explanation": "S2 returned HTTP 422 UNPROCESSABLE_ENTITY with details[0].issue=INSTRUMENT_DECLINED, a description, and a debug_id. The error is machine-readable and includes a support trace id, so the merchant can branch on the issue code and show a decline message. The same error shape appeared on create-time decline (S3).",
+      "step_ids": [
+        "S2",
+        "S3"
+      ]
+    },
+    {
+      "title": "Existing captured order is unaffected by a declined capture attempt",
+      "severity": "info",
+      "explanation": "After the declined capture (S2), S4 and S5 show the order and capture still COMPLETED for $10.00 with no refund or reversal. The failed attempt did not change state.",
+      "step_ids": [
+        "S4",
+        "S5"
+      ]
+    }
+  ],
+  "summary": "Tested how a declined card is handled at capture time in the PayPal sandbox. Card orders are charged at create time, so a true capture-time decline was simulated by calling capture_order on an existing order with the INSTRUMENT_DECLINED mock. PayPal rejected it with HTTP 422, issue INSTRUMENT_DECLINED and a debug_id, which is the expected error shape. The create-time decline control (S3) was also rejected with the same 422/INSTRUMENT_DECLINED response. The previously successful order (0AB67962YR4285836) and its capture (16S56782J6857735Y) remained COMPLETED with the original $10.00 amount, so the failed attempt did not corrupt existing state.",
+  "plan": [
+    "S1: Create a baseline card order (intent CAPTURE, 10.00 USD) to confirm the sandbox works and see how payments are represented.",
+    "S2: Simulate a declined card at capture time: call capture_order on a fresh order with mock_error INSTRUMENT_DECLINED, expecting an error.",
+    "S3: Negative control: attempt create_order with mock_error INSTRUMENT_DECLINED (card decline at create) and confirm it is rejected with no capture recorded.",
+    "S4: Re-read the baseline order with get_order to verify it is not altered by the declined attempts.",
+    "S5: Assert the decline response carries INSTRUMENT_DECLINED / an error status and the order does not transition to COMPLETED."
+  ],
+  "agent_error": null,
+  "usage": {
+    "input_tokens": 51249,
+    "output_tokens": 2741
+  },
+  "verdict": "PASS"
+}

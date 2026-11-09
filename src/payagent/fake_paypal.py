@@ -7,6 +7,7 @@ mock error codes). It is NOT a full PayPal emulator; the real sandbox is the sou
 
 from __future__ import annotations
 
+import copy
 import re
 import uuid
 from decimal import Decimal
@@ -21,6 +22,18 @@ def _id(prefix: str) -> str:
 
 def _money(currency: str, value: Decimal) -> dict[str, str]:
     return {"currency_code": currency, "value": f"{value:.2f}"}
+
+
+_INTERNAL_KEYS = {"captured", "refunded"}  # bookkeeping the real API doesn't return
+
+
+def _public(value: Any) -> Any:
+    """Snapshot a stored object as an HTTP response would: a deep copy without internal bookkeeping."""
+    if isinstance(value, dict):
+        return {k: _public(v) for k, v in value.items() if k not in _INTERNAL_KEYS}
+    if isinstance(value, list):
+        return [_public(v) for v in value]
+    return copy.deepcopy(value)
 
 
 def _error(status: int, name: str, issue: str, description: str) -> tuple[int, dict[str, Any]]:
@@ -51,7 +64,7 @@ class FakePayPalClient(PayPalClient):
                                      "Mocked error response.")
             return status, payload, payload["debug_id"]
         status, payload = self._route(method, path, body or {})
-        return status, payload, uuid.uuid4().hex[:13]
+        return status, _public(payload), uuid.uuid4().hex[:13]
 
     # ------------------------------------------------------------------ routing
     def _route(self, method: str, path: str, body: dict[str, Any]) -> tuple[int, Any]:
@@ -63,7 +76,7 @@ class FakePayPalClient(PayPalClient):
             if order is None:
                 return _error(404, "RESOURCE_NOT_FOUND", "INVALID_RESOURCE_ID", "Order not found.")
             if len(parts) == 4 and method == "GET":
-                return 200, order
+                return 200, self._refreshed(order)
             if len(parts) == 5 and parts[4] == "capture":
                 return self._capture_order(order)
             if len(parts) == 5 and parts[4] == "authorize":
@@ -83,12 +96,25 @@ class FakePayPalClient(PayPalClient):
             if kind == "authorizations" and action == "capture":
                 return self._capture_auth(obj, body)
             if kind == "authorizations" and action == "void":
-                if obj["status"] != "CREATED":
+                if obj["status"] not in {"CREATED", "PARTIALLY_CAPTURED"}:  # sandbox voids the uncaptured rest
                     return _error(422, "UNPROCESSABLE_ENTITY", "PREVIOUSLY_VOIDED"
                                   if obj["status"] == "VOIDED" else "CANNOT_BE_VOIDED", "Cannot void.")
                 obj["status"] = "VOIDED"
                 return 200, obj
         return _error(404, "NOT_FOUND", "UNSUPPORTED_ROUTE", f"{method} {path} not supported by fake.")
+
+    def _refreshed(self, order: dict[str, Any]) -> dict[str, Any]:
+        """Order view with the current state of its authorizations and captures, as the real API returns."""
+        view = copy.deepcopy(order)
+        payments = view["purchase_units"][0]["payments"]
+        if "authorizations" in payments:
+            payments["authorizations"] = [{**a, "status": self.authorizations[a["id"]]["status"]}
+                                          for a in payments["authorizations"]]
+        captures = [c for c in self.captures.values()
+                    if c["supplementary_data"]["related_ids"]["order_id"] == order["id"]]
+        if captures:
+            payments["captures"] = captures
+        return view
 
     # --------------------------------------------------------------- handlers
     def _create_order(self, body: dict[str, Any]) -> tuple[int, Any]:
@@ -109,6 +135,11 @@ class FakePayPalClient(PayPalClient):
             "links": [{"rel": "payer-action", "href": "https://www.sandbox.paypal.com/checkoutnow?token=FAKE"}],
         }
         self.orders[order["id"]] = order
+        if "card" in source:
+            # Like the real sandbox: a card-funded order is captured/authorized at create time (COMPLETED).
+            status, payload = (self._capture_order(order) if order["intent"] == "CAPTURE"
+                               else self._authorize_order(order))
+            return (201, payload) if status < 300 else (status, payload)
         return 201, order
 
     def _capture_order(self, order: dict[str, Any]) -> tuple[int, Any]:
@@ -144,8 +175,10 @@ class FakePayPalClient(PayPalClient):
         currency = auth["amount"]["currency_code"]
         total = Decimal(auth["amount"]["value"])
         remaining = total - Decimal(auth["captured"])
+        # PayPal allows capturing up to 115% of the authorization, capped at +75.00.
+        limit = min(total * Decimal("1.15"), total + 75) - Decimal(auth["captured"])
         value = Decimal(body.get("amount", {}).get("value", remaining))
-        if value > remaining:
+        if value > limit:
             return _error(422, "UNPROCESSABLE_ENTITY", "MAX_CAPTURE_AMOUNT_EXCEEDED", "Exceeds authorization.")
         auth["captured"] = f"{Decimal(auth['captured']) + value:.2f}"
         final = body.get("final_capture", True) or Decimal(auth["captured"]) == total
@@ -170,6 +203,11 @@ class FakePayPalClient(PayPalClient):
         value = Decimal(req["value"]) if req else remaining
         if value <= 0:
             return _error(422, "UNPROCESSABLE_ENTITY", "REFUND_AMOUNT_INVALID", "Must be > 0.")
+        gross = Decimal(cap["amount"]["value"])
+        if value == gross and remaining < gross:
+            # Quirk observed in the real sandbox (examples/findings.txt): a request equal to the original
+            # capture amount is accepted and silently reduced to what remains.
+            value = remaining
         if value > remaining:
             return _error(422, "UNPROCESSABLE_ENTITY", "REFUND_AMOUNT_EXCEEDED", "Exceeds refundable amount.")
         cap["refunded"] = f"{Decimal(cap['refunded']) + value:.2f}"

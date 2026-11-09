@@ -1,0 +1,1291 @@
+{
+  "goal": "Authorize 40 USD, capture 25 as a partial capture, then void the rest and check the states",
+  "started_at": "2026-11-09T16:49:29+00:00",
+  "finished_at": "2026-11-09T16:50:05+00:00",
+  "model": "claude-haiku-5.5",
+  "steps": [
+    {
+      "id": "S1",
+      "tool": "create_order",
+      "args": {
+        "amount": "40.00",
+        "currency": "USD",
+        "intent": "AUTHORIZE",
+        "payment_method": "card"
+      },
+      "expect": "success",
+      "response": {
+        "method": "POST",
+        "path": "/v2/checkout/orders",
+        "status": 201,
+        "body": {
+          "id": "67N85550R90517011",
+          "intent": "AUTHORIZE",
+          "status": "COMPLETED",
+          "payment_source": {
+            "card": {
+              "name": "Sandbox Tester",
+              "last_digits": "1111",
+              "expiry": "2030-12",
+              "brand": "VISA",
+              "type": "UNKNOWN",
+              "bin_details": {}
+            }
+          },
+          "purchase_units": [
+            {
+              "reference_id": "default",
+              "amount": {
+                "currency_code": "USD",
+                "value": "40.00"
+              },
+              "payee": {
+                "email_address": "sb-ov4ue53787861@business.example.com",
+                "merchant_id": "5JAP36CHEPYNQ"
+              },
+              "soft_descriptor": "TEST STORE",
+              "payments": {
+                "authorizations": [
+                  {
+                    "status": "CREATED",
+                    "id": "53984335H1838011A",
+                    "amount": {
+                      "currency_code": "USD",
+                      "value": "40.00"
+                    },
+                    "seller_protection": {
+                      "status": "NOT_ELIGIBLE"
+                    },
+                    "processor_response": {
+                      "avs_code": "A",
+                      "cvv_code": "M",
+                      "response_code": "0000"
+                    },
+                    "expiration_time": "2026-12-08T16:49:36Z",
+                    "links": [
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/authorizations/53984335H1838011A",
+                        "rel": "self",
+                        "method": "GET"
+                      },
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/authorizations/53984335H1838011A/capture",
+                        "rel": "capture",
+                        "method": "POST"
+                      },
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/authorizations/53984335H1838011A/void",
+                        "rel": "void",
+                        "method": "POST"
+                      },
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/authorizations/53984335H1838011A/reauthorize",
+                        "rel": "reauthorize",
+                        "method": "POST"
+                      },
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/checkout/orders/67N85550R90517011",
+                        "rel": "up",
+                        "method": "GET"
+                      }
+                    ],
+                    "create_time": "2026-11-09T16:49:36Z",
+                    "update_time": "2026-11-09T16:49:36Z",
+                    "network_transaction_reference": {
+                      "id": "008853329460675",
+                      "network": "VISA"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "create_time": "2026-11-09T16:49:36Z",
+          "update_time": "2026-11-09T16:49:36Z",
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v2/checkout/orders/67N85550R90517011",
+              "rel": "self",
+              "method": "GET"
+            }
+          ]
+        },
+        "debug_id": "ca57e4fc29955",
+        "request_body": {
+          "intent": "AUTHORIZE",
+          "purchase_units": [
+            {
+              "reference_id": "default",
+              "amount": {
+                "currency_code": "USD",
+                "value": "40.00"
+              }
+            }
+          ],
+          "payment_source": {
+            "card": {
+              "number": "************1111",
+              "expiry": "2030-12",
+              "name": "Sandbox Tester",
+              "billing_address": {
+                "address_line_1": "1 Main St",
+                "admin_area_2": "San Jose",
+                "admin_area_1": "CA",
+                "postal_code": "95131",
+                "country_code": "US"
+              }
+            }
+          }
+        },
+        "duration_ms": 3471
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "create_order returns HTTP 2xx",
+          "passed": true,
+          "expected": "2xx",
+          "actual": 201,
+          "step_id": "S1",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Order id is returned",
+          "passed": true,
+          "expected": "exists",
+          "actual": "67N85550R90517011",
+          "step_id": "S1",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Order status is valid after create",
+          "passed": true,
+          "expected": [
+            "CREATED",
+            "APPROVED",
+            "PAYER_ACTION_REQUIRED",
+            "COMPLETED"
+          ],
+          "actual": "COMPLETED",
+          "step_id": "S1",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Order amount matches request",
+          "passed": true,
+          "expected": "40.00",
+          "actual": "40.00",
+          "step_id": "S1",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Order currency matches request",
+          "passed": true,
+          "expected": "USD",
+          "actual": "USD",
+          "step_id": "S1",
+          "source": "auto",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "tool": "capture_authorization",
+      "args": {
+        "authorization_id": "53984335H1838011A",
+        "amount": "25.00",
+        "currency": "USD",
+        "final_capture": false
+      },
+      "expect": "success",
+      "response": {
+        "method": "POST",
+        "path": "/v2/payments/authorizations/53984335H1838011A/capture",
+        "status": 201,
+        "body": {
+          "id": "6WG29562W48281115",
+          "amount": {
+            "currency_code": "USD",
+            "value": "25.00"
+          },
+          "final_capture": false,
+          "seller_protection": {
+            "status": "NOT_ELIGIBLE"
+          },
+          "seller_receivable_breakdown": {
+            "gross_amount": {
+              "currency_code": "USD",
+              "value": "25.00"
+            },
+            "paypal_fee": {
+              "currency_code": "USD",
+              "value": "1.14"
+            },
+            "net_amount": {
+              "currency_code": "USD",
+              "value": "23.86"
+            },
+            "exchange_rate": {}
+          },
+          "status": "COMPLETED",
+          "create_time": "2026-11-09T16:49:41Z",
+          "update_time": "2026-11-09T16:49:41Z",
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/captures/6WG29562W48281115",
+              "rel": "self",
+              "method": "GET"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/captures/6WG29562W48281115/refund",
+              "rel": "refund",
+              "method": "POST"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/authorizations/53984335H1838011A",
+              "rel": "up",
+              "method": "GET"
+            }
+          ],
+          "network_transaction_reference": {
+            "id": "008853329460675",
+            "network": "VISA"
+          }
+        },
+        "debug_id": "ca57e4fe1283c",
+        "request_body": {
+          "final_capture": false,
+          "amount": {
+            "currency_code": "USD",
+            "value": "25.00"
+          }
+        },
+        "duration_ms": 2187
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "capture_authorization returns HTTP 2xx",
+          "passed": true,
+          "expected": "2xx",
+          "actual": 201,
+          "step_id": "S2",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Capture status is COMPLETED",
+          "passed": true,
+          "expected": "COMPLETED",
+          "actual": "COMPLETED",
+          "step_id": "S2",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Captured amount matches request",
+          "passed": true,
+          "expected": "25.00",
+          "actual": "25.00",
+          "step_id": "S2",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Partial capture is not marked as final_capture",
+          "passed": true,
+          "expected": false,
+          "actual": false,
+          "step_id": "S2",
+          "source": "agent",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "tool": "get_authorization",
+      "args": {
+        "authorization_id": "53984335H1838011A"
+      },
+      "expect": "success",
+      "response": {
+        "method": "GET",
+        "path": "/v2/payments/authorizations/53984335H1838011A",
+        "status": 200,
+        "body": {
+          "id": "53984335H1838011A",
+          "status": "PARTIALLY_CAPTURED",
+          "amount": {
+            "currency_code": "USD",
+            "value": "40.00"
+          },
+          "seller_protection": {
+            "status": "NOT_ELIGIBLE"
+          },
+          "processor_response": {
+            "avs_code": "A",
+            "cvv_code": "M",
+            "response_code": "0000"
+          },
+          "supplementary_data": {
+            "related_ids": {
+              "order_id": "67N85550R90517011"
+            }
+          },
+          "payee": {
+            "email_address": "sb-ov4ue53787861@business.example.com",
+            "merchant_id": "5JAP36CHEPYNQ"
+          },
+          "expiration_time": "2026-12-08T16:49:36Z",
+          "create_time": "2026-11-09T16:49:36Z",
+          "update_time": "2026-11-09T16:49:41Z",
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/authorizations/53984335H1838011A",
+              "rel": "self",
+              "method": "GET"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/authorizations/53984335H1838011A/capture",
+              "rel": "capture",
+              "method": "POST"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/authorizations/53984335H1838011A/void",
+              "rel": "void",
+              "method": "POST"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/authorizations/53984335H1838011A/reauthorize",
+              "rel": "reauthorize",
+              "method": "POST"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/checkout/orders/67N85550R90517011",
+              "rel": "up",
+              "method": "GET"
+            }
+          ],
+          "network_transaction_reference": {
+            "id": "008853329460675",
+            "network": "VISA"
+          }
+        },
+        "debug_id": "ca57e4ff84cd9",
+        "request_body": null,
+        "duration_ms": 550
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "get_authorization returns HTTP 2xx",
+          "passed": true,
+          "expected": "2xx",
+          "actual": 200,
+          "step_id": "S3",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Fetched resource id matches",
+          "passed": true,
+          "expected": "53984335H1838011A",
+          "actual": "53984335H1838011A",
+          "step_id": "S3",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Authorization is PARTIALLY_CAPTURED after 25.00 partial capture",
+          "passed": true,
+          "expected": "PARTIALLY_CAPTURED",
+          "actual": "PARTIALLY_CAPTURED",
+          "step_id": "S3",
+          "source": "agent",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "tool": "void_authorization",
+      "args": {
+        "authorization_id": "53984335H1838011A"
+      },
+      "expect": "success",
+      "response": {
+        "method": "POST",
+        "path": "/v2/payments/authorizations/53984335H1838011A/void",
+        "status": 200,
+        "body": {
+          "id": "53984335H1838011A",
+          "status": "VOIDED",
+          "amount": {
+            "currency_code": "USD",
+            "value": "40.00"
+          },
+          "seller_protection": {
+            "status": "NOT_ELIGIBLE"
+          },
+          "expiration_time": "2026-12-08T08:49:36-08:00",
+          "create_time": "2026-11-09T08:49:36-08:00",
+          "update_time": "2026-11-09T08:49:47-08:00",
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/authorizations/53984335H1838011A",
+              "rel": "self",
+              "method": "GET"
+            }
+          ]
+        },
+        "debug_id": "ca57e500b0978",
+        "request_body": null,
+        "duration_ms": 1009
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "void_authorization returns HTTP 2xx",
+          "passed": true,
+          "expected": "2xx",
+          "actual": 200,
+          "step_id": "S4",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Authorization status is VOIDED",
+          "passed": true,
+          "expected": "VOIDED",
+          "actual": "VOIDED",
+          "step_id": "S4",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Authorization is VOIDED after voiding the remainder",
+          "passed": true,
+          "expected": "VOIDED",
+          "actual": "VOIDED",
+          "step_id": "S4",
+          "source": "agent",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S5",
+      "tool": "void_authorization",
+      "args": {
+        "authorization_id": "53984335H1838011A",
+        "expect": "error",
+        "expected_issue": "PREVIOUSLY_VOIDED"
+      },
+      "expect": "error",
+      "response": {
+        "method": "POST",
+        "path": "/v2/payments/authorizations/53984335H1838011A/void",
+        "status": 422,
+        "body": {
+          "name": "UNPROCESSABLE_ENTITY",
+          "message": "The requested action could not be performed, semantically incorrect, or failed business validation.",
+          "debug_id": "ca57e50259ec4",
+          "details": [
+            {
+              "issue": "PREVIOUSLY_VOIDED",
+              "field": "authorization_id",
+              "value": "53984335H1838011A",
+              "description": "Authorization has been previously voided and hence cannot be voided again.",
+              "location": "path"
+            }
+          ],
+          "links": [
+            {
+              "href": "https://developer.paypal.com/docs/api/payments/v2/#error-PREVIOUSLY_VOIDED",
+              "rel": "information_link"
+            }
+          ]
+        },
+        "debug_id": "ca57e50259ec4",
+        "request_body": null,
+        "duration_ms": 770
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "void_authorization is rejected with a 4xx error",
+          "passed": true,
+          "expected": "4xx",
+          "actual": 422,
+          "step_id": "S5",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Error body has PayPal 'name' field",
+          "passed": true,
+          "expected": "exists",
+          "actual": "UNPROCESSABLE_ENTITY",
+          "step_id": "S5",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "PayPal debug_id returned for support tracing (header or body)",
+          "passed": true,
+          "expected": "exists",
+          "actual": "ca57e50259ec4",
+          "step_id": "S5",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Error issue code is PREVIOUSLY_VOIDED",
+          "passed": true,
+          "expected": "PREVIOUSLY_VOIDED",
+          "actual": [
+            "PREVIOUSLY_VOIDED"
+          ],
+          "step_id": "S5",
+          "source": "auto",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S6",
+      "tool": "capture_authorization",
+      "args": {
+        "authorization_id": "53984335H1838011A",
+        "amount": "15.00",
+        "currency": "USD",
+        "expect": "error",
+        "expected_issue": "AUTHORIZATION_VOIDED"
+      },
+      "expect": "error",
+      "response": {
+        "method": "POST",
+        "path": "/v2/payments/authorizations/53984335H1838011A/capture",
+        "status": 422,
+        "body": {
+          "name": "UNPROCESSABLE_ENTITY",
+          "message": "The requested action could not be performed, semantically incorrect, or failed business validation.",
+          "debug_id": "ca57e502a6b2d",
+          "details": [
+            {
+              "issue": "AUTHORIZATION_VOIDED",
+              "description": "Authorization has been voided."
+            }
+          ],
+          "links": [
+            {
+              "href": "https://developer.paypal.com/docs/api/payments/v2/#error-AUTHORIZATION_VOIDED",
+              "rel": "information_link",
+              "encType": "application/json"
+            }
+          ]
+        },
+        "debug_id": "ca57e502a6b2d",
+        "request_body": {
+          "final_capture": true,
+          "amount": {
+            "currency_code": "USD",
+            "value": "15.00"
+          }
+        },
+        "duration_ms": 762
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "capture_authorization is rejected with a 4xx error",
+          "passed": true,
+          "expected": "4xx",
+          "actual": 422,
+          "step_id": "S6",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Error body has PayPal 'name' field",
+          "passed": true,
+          "expected": "exists",
+          "actual": "UNPROCESSABLE_ENTITY",
+          "step_id": "S6",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "PayPal debug_id returned for support tracing (header or body)",
+          "passed": true,
+          "expected": "exists",
+          "actual": "ca57e502a6b2d",
+          "step_id": "S6",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Error issue code is AUTHORIZATION_VOIDED",
+          "passed": true,
+          "expected": "AUTHORIZATION_VOIDED",
+          "actual": [
+            "AUTHORIZATION_VOIDED"
+          ],
+          "step_id": "S6",
+          "source": "auto",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S7",
+      "tool": "get_capture",
+      "args": {
+        "capture_id": "6WG29562W48281115"
+      },
+      "expect": "success",
+      "response": {
+        "method": "GET",
+        "path": "/v2/payments/captures/6WG29562W48281115",
+        "status": 200,
+        "body": {
+          "id": "6WG29562W48281115",
+          "amount": {
+            "currency_code": "USD",
+            "value": "25.00"
+          },
+          "final_capture": false,
+          "seller_protection": {
+            "status": "NOT_ELIGIBLE"
+          },
+          "disbursement_mode": "INSTANT",
+          "seller_receivable_breakdown": {
+            "gross_amount": {
+              "currency_code": "USD",
+              "value": "25.00"
+            },
+            "paypal_fee": {
+              "currency_code": "USD",
+              "value": "1.14"
+            },
+            "net_amount": {
+              "currency_code": "USD",
+              "value": "23.86"
+            }
+          },
+          "status": "COMPLETED",
+          "processor_response": {
+            "avs_code": "A",
+            "cvv_code": "M",
+            "response_code": "0000"
+          },
+          "supplementary_data": {
+            "related_ids": {
+              "order_id": "67N85550R90517011",
+              "authorization_id": "53984335H1838011A"
+            }
+          },
+          "payee": {
+            "email_address": "sb-ov4ue53787861@business.example.com",
+            "merchant_id": "5JAP36CHEPYNQ"
+          },
+          "create_time": "2026-11-09T16:49:41Z",
+          "update_time": "2026-11-09T16:49:41Z",
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/captures/6WG29562W48281115",
+              "rel": "self",
+              "method": "GET"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/captures/6WG29562W48281115/refund",
+              "rel": "refund",
+              "method": "POST"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/authorizations/53984335H1838011A",
+              "rel": "up",
+              "method": "GET"
+            }
+          ],
+          "network_transaction_reference": {
+            "id": "008853329460675",
+            "network": "VISA"
+          }
+        },
+        "debug_id": "ca57e502f3838",
+        "request_body": null,
+        "duration_ms": 707
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "get_capture returns HTTP 2xx",
+          "passed": true,
+          "expected": "2xx",
+          "actual": 200,
+          "step_id": "S7",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Fetched resource id matches",
+          "passed": true,
+          "expected": "6WG29562W48281115",
+          "actual": "6WG29562W48281115",
+          "step_id": "S7",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Capture links back to the original authorization",
+          "passed": true,
+          "expected": "53984335H1838011A",
+          "actual": "53984335H1838011A",
+          "step_id": "S7",
+          "source": "agent",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S8",
+      "tool": "get_order",
+      "args": {
+        "order_id": "67N85550R90517011"
+      },
+      "expect": "success",
+      "response": {
+        "method": "GET",
+        "path": "/v2/checkout/orders/67N85550R90517011",
+        "status": 200,
+        "body": {
+          "id": "67N85550R90517011",
+          "intent": "AUTHORIZE",
+          "status": "COMPLETED",
+          "payment_source": {
+            "card": {
+              "name": "Sandbox Tester",
+              "last_digits": "1111",
+              "expiry": "2030-12",
+              "brand": "VISA",
+              "type": "UNKNOWN",
+              "bin_details": {}
+            }
+          },
+          "purchase_units": [
+            {
+              "reference_id": "default",
+              "amount": {
+                "currency_code": "USD",
+                "value": "40.00",
+                "breakdown": {}
+              },
+              "payee": {
+                "email_address": "sb-ov4ue53787861@business.example.com",
+                "merchant_id": "5JAP36CHEPYNQ"
+              },
+              "soft_descriptor": "TEST STORE",
+              "payments": {
+                "authorizations": [
+                  {
+                    "status": "VOIDED",
+                    "id": "53984335H1838011A",
+                    "amount": {
+                      "currency_code": "USD",
+                      "value": "40.00"
+                    },
+                    "seller_protection": {
+                      "status": "NOT_ELIGIBLE"
+                    },
+                    "processor_response": {
+                      "avs_code": "A",
+                      "cvv_code": "M",
+                      "response_code": "0000"
+                    },
+                    "expiration_time": "2026-12-08T16:49:36Z",
+                    "links": [
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/authorizations/53984335H1838011A",
+                        "rel": "self",
+                        "method": "GET"
+                      },
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/authorizations/53984335H1838011A/capture",
+                        "rel": "capture",
+                        "method": "POST"
+                      },
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/authorizations/53984335H1838011A/void",
+                        "rel": "void",
+                        "method": "POST"
+                      },
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/authorizations/53984335H1838011A/reauthorize",
+                        "rel": "reauthorize",
+                        "method": "POST"
+                      },
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/checkout/orders/67N85550R90517011",
+                        "rel": "up",
+                        "method": "GET"
+                      }
+                    ],
+                    "create_time": "2026-11-09T16:49:36Z",
+                    "update_time": "2026-11-09T16:49:47Z"
+                  }
+                ],
+                "captures": [
+                  {
+                    "id": "6WG29562W48281115",
+                    "status": "COMPLETED",
+                    "amount": {
+                      "currency_code": "USD",
+                      "value": "25.00"
+                    },
+                    "final_capture": false,
+                    "disbursement_mode": "INSTANT",
+                    "seller_protection": {
+                      "status": "NOT_ELIGIBLE"
+                    },
+                    "seller_receivable_breakdown": {
+                      "gross_amount": {
+                        "currency_code": "USD",
+                        "value": "25.00"
+                      },
+                      "paypal_fee": {
+                        "currency_code": "USD",
+                        "value": "1.14"
+                      },
+                      "net_amount": {
+                        "currency_code": "USD",
+                        "value": "23.86"
+                      }
+                    },
+                    "links": [
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/captures/6WG29562W48281115",
+                        "rel": "self",
+                        "method": "GET"
+                      },
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/captures/6WG29562W48281115/refund",
+                        "rel": "refund",
+                        "method": "POST"
+                      },
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/authorizations/53984335H1838011A",
+                        "rel": "up",
+                        "method": "GET"
+                      }
+                    ],
+                    "create_time": "2026-11-09T16:49:41Z",
+                    "update_time": "2026-11-09T16:49:41Z",
+                    "network_transaction_reference": {
+                      "id": "008853329460675",
+                      "network": "VISA"
+                    },
+                    "processor_response": {
+                      "avs_code": "A",
+                      "cvv_code": "M",
+                      "response_code": "0000"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "create_time": "2026-11-09T16:49:36Z",
+          "update_time": "2026-11-09T16:49:47Z",
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v2/checkout/orders/67N85550R90517011",
+              "rel": "self",
+              "method": "GET"
+            }
+          ]
+        },
+        "debug_id": "ca57e50339bd4",
+        "request_body": null,
+        "duration_ms": 907
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "get_order returns HTTP 2xx",
+          "passed": true,
+          "expected": "2xx",
+          "actual": 200,
+          "step_id": "S8",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Fetched resource id matches",
+          "passed": true,
+          "expected": "67N85550R90517011",
+          "actual": "67N85550R90517011",
+          "step_id": "S8",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Order view shows the authorization as VOIDED",
+          "passed": true,
+          "expected": "VOIDED",
+          "actual": "VOIDED",
+          "step_id": "S8",
+          "source": "agent",
+          "retracted": null
+        },
+        {
+          "description": "Order view shows the 25.00 capture still COMPLETED alongside the voided remainder",
+          "passed": true,
+          "expected": 25.0,
+          "actual": "25.00",
+          "step_id": "S8",
+          "source": "agent",
+          "retracted": null
+        }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "description": "create_order returns HTTP 2xx",
+      "passed": true,
+      "expected": "2xx",
+      "actual": 201,
+      "step_id": "S1",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Order id is returned",
+      "passed": true,
+      "expected": "exists",
+      "actual": "67N85550R90517011",
+      "step_id": "S1",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Order status is valid after create",
+      "passed": true,
+      "expected": [
+        "CREATED",
+        "APPROVED",
+        "PAYER_ACTION_REQUIRED",
+        "COMPLETED"
+      ],
+      "actual": "COMPLETED",
+      "step_id": "S1",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Order amount matches request",
+      "passed": true,
+      "expected": "40.00",
+      "actual": "40.00",
+      "step_id": "S1",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Order currency matches request",
+      "passed": true,
+      "expected": "USD",
+      "actual": "USD",
+      "step_id": "S1",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "capture_authorization returns HTTP 2xx",
+      "passed": true,
+      "expected": "2xx",
+      "actual": 201,
+      "step_id": "S2",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Capture status is COMPLETED",
+      "passed": true,
+      "expected": "COMPLETED",
+      "actual": "COMPLETED",
+      "step_id": "S2",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Captured amount matches request",
+      "passed": true,
+      "expected": "25.00",
+      "actual": "25.00",
+      "step_id": "S2",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "get_authorization returns HTTP 2xx",
+      "passed": true,
+      "expected": "2xx",
+      "actual": 200,
+      "step_id": "S3",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Fetched resource id matches",
+      "passed": true,
+      "expected": "53984335H1838011A",
+      "actual": "53984335H1838011A",
+      "step_id": "S3",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "void_authorization returns HTTP 2xx",
+      "passed": true,
+      "expected": "2xx",
+      "actual": 200,
+      "step_id": "S4",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Authorization status is VOIDED",
+      "passed": true,
+      "expected": "VOIDED",
+      "actual": "VOIDED",
+      "step_id": "S4",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "void_authorization is rejected with a 4xx error",
+      "passed": true,
+      "expected": "4xx",
+      "actual": 422,
+      "step_id": "S5",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Error body has PayPal 'name' field",
+      "passed": true,
+      "expected": "exists",
+      "actual": "UNPROCESSABLE_ENTITY",
+      "step_id": "S5",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "PayPal debug_id returned for support tracing (header or body)",
+      "passed": true,
+      "expected": "exists",
+      "actual": "ca57e50259ec4",
+      "step_id": "S5",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Error issue code is PREVIOUSLY_VOIDED",
+      "passed": true,
+      "expected": "PREVIOUSLY_VOIDED",
+      "actual": [
+        "PREVIOUSLY_VOIDED"
+      ],
+      "step_id": "S5",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "capture_authorization is rejected with a 4xx error",
+      "passed": true,
+      "expected": "4xx",
+      "actual": 422,
+      "step_id": "S6",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Error body has PayPal 'name' field",
+      "passed": true,
+      "expected": "exists",
+      "actual": "UNPROCESSABLE_ENTITY",
+      "step_id": "S6",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "PayPal debug_id returned for support tracing (header or body)",
+      "passed": true,
+      "expected": "exists",
+      "actual": "ca57e502a6b2d",
+      "step_id": "S6",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Error issue code is AUTHORIZATION_VOIDED",
+      "passed": true,
+      "expected": "AUTHORIZATION_VOIDED",
+      "actual": [
+        "AUTHORIZATION_VOIDED"
+      ],
+      "step_id": "S6",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "get_capture returns HTTP 2xx",
+      "passed": true,
+      "expected": "2xx",
+      "actual": 200,
+      "step_id": "S7",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Fetched resource id matches",
+      "passed": true,
+      "expected": "6WG29562W48281115",
+      "actual": "6WG29562W48281115",
+      "step_id": "S7",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "get_order returns HTTP 2xx",
+      "passed": true,
+      "expected": "2xx",
+      "actual": 200,
+      "step_id": "S8",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Fetched resource id matches",
+      "passed": true,
+      "expected": "67N85550R90517011",
+      "actual": "67N85550R90517011",
+      "step_id": "S8",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Authorization is PARTIALLY_CAPTURED after 25.00 partial capture",
+      "passed": true,
+      "expected": "PARTIALLY_CAPTURED",
+      "actual": "PARTIALLY_CAPTURED",
+      "step_id": "S3",
+      "source": "agent",
+      "retracted": null
+    },
+    {
+      "description": "Authorization is VOIDED after voiding the remainder",
+      "passed": true,
+      "expected": "VOIDED",
+      "actual": "VOIDED",
+      "step_id": "S4",
+      "source": "agent",
+      "retracted": null
+    },
+    {
+      "description": "Partial capture is not marked as final_capture",
+      "passed": true,
+      "expected": false,
+      "actual": false,
+      "step_id": "S2",
+      "source": "agent",
+      "retracted": null
+    },
+    {
+      "description": "Order view shows the authorization as VOIDED",
+      "passed": true,
+      "expected": "VOIDED",
+      "actual": "VOIDED",
+      "step_id": "S8",
+      "source": "agent",
+      "retracted": null
+    },
+    {
+      "description": "Order view shows the 25.00 capture still COMPLETED alongside the voided remainder",
+      "passed": true,
+      "expected": 25.0,
+      "actual": "25.00",
+      "step_id": "S8",
+      "source": "agent",
+      "retracted": null
+    },
+    {
+      "description": "Capture links back to the original authorization",
+      "passed": true,
+      "expected": "53984335H1838011A",
+      "actual": "53984335H1838011A",
+      "step_id": "S7",
+      "source": "agent",
+      "retracted": null
+    }
+  ],
+  "findings": [
+    {
+      "title": "Partial capture then void behaves per spec",
+      "severity": "info",
+      "explanation": "Authorization 40.00 \u2192 partial capture 25.00 (status PARTIALLY_CAPTURED) \u2192 void (status VOIDED). The 25.00 capture remains COMPLETED and is retained. Both negative tests returned the documented issue codes (PREVIOUSLY_VOIDED, AUTHORIZATION_VOIDED).",
+      "step_ids": [
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8"
+      ]
+    },
+    {
+      "title": "Observation: authorization amount still reports 40.00 after partial capture and void",
+      "severity": "info",
+      "explanation": "The authorization resource's amount field stays at 40.00 after the 25.00 capture and the void. This is probably the originally authorized amount rather than a remaining balance, so it is not a defect, but integrators should derive the remaining balance from captures rather than from this field.",
+      "step_ids": [
+        "S3",
+        "S4",
+        "S8"
+      ]
+    },
+    {
+      "title": "Coverage gaps",
+      "severity": "info",
+      "explanation": "Not tested: a second partial capture before voiding, a capture above the authorized amount (MAX_CAPTURE_AMOUNT_EXCEEDED), refund of the 25.00 capture, the 'authorize' step as a separate API call (the card order was authorized at create time so authorize_order was skipped), and PayPal-wallet flows.",
+      "step_ids": [
+        "S1"
+      ]
+    }
+  ],
+  "summary": "Tested the authorize 40 USD \u2192 partial capture 25 USD \u2192 void remainder flow in the PayPal sandbox. All checks passed. The order 67N85550R90517011 was card-funded at create time (status COMPLETED, authorization 53984335H1838011A CREATED for 40.00). A 25.00 partial capture (6WG29562W48281115, final_capture=false, COMPLETED) moved the authorization to PARTIALLY_CAPTURED. Voiding the remainder moved it to VOIDED. Negative tests passed: a second void returned PREVIOUSLY_VOIDED (422), and capturing the remaining 15.00 after the void returned AUTHORIZATION_VOIDED (422). The order view shows the authorization VOIDED and the 25.00 capture COMPLETED, and the capture links back to the authorization.",
+  "plan": [
+    "S1: Create a 40.00 USD AUTHORIZE order funded by sandbox card; confirm authorization id is returned.",
+    "S2: Authorize the order if not already authorized; capture the authorization ID.",
+    "S3: Partially capture 25.00 USD from the authorization (final_capture=false); verify captured amount.",
+    "S4: Get authorization to confirm state after partial capture (remaining 15.00 open).",
+    "S5: Void the remaining authorization; verify VOIDED state.",
+    "S6: Negative tests: second void (expect PREVIOUSLY_VOIDED) and capture of 15.00 after void (expect AUTHORIZATION_VOIDED).",
+    "S7: Re-read authorization and order to confirm final states; finish."
+  ],
+  "agent_error": null,
+  "usage": {
+    "input_tokens": 78215,
+    "output_tokens": 3518
+  },
+  "verdict": "PASS"
+}

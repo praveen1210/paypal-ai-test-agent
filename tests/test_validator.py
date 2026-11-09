@@ -55,3 +55,39 @@ def test_assert_on_missing_path_is_a_test_error_not_a_failure():
     _, is_error = ex.execute("assert_field", {"step_id": "S1", "path": "capture_id", "operator": "exists",
                                               "description": "capture_id present"})
     assert not is_error and result.checks[-1].passed is False
+
+
+def test_agent_can_retract_own_assertion_but_not_builtin_checks():
+    import json as _json
+
+    from payagent.models import Check, RunResult
+    from payagent.report import to_junit, to_markdown
+    from payagent.tools import ToolExecutor
+
+    result = RunResult(goal="g", started_at="t")
+    result.steps.append(Step(id="S1", tool="get_refund", args={}, expect="success",
+                             response=ApiResponse("GET", "/r", 200, {"id": "R1", "status": "COMPLETED"})))
+    result.checks.append(Check("built-in", True, step_id="S1"))
+    ex = ToolExecutor(paypal=None, result=result)
+    reply = _json.loads(ex.execute("assert_field", {"step_id": "S1", "path": "refund.status", "operator": "exists",
+                                                     "description": "wrong path"})[0])
+    assert reply["check_id"] == "C2" and reply["passed"] is False and "retract_assertion" in reply["hint"]
+    assert result.verdict == "FAIL"
+
+    _, is_error = ex.execute("retract_assertion", {"check_id": "C1", "reason": "x"})
+    assert is_error  # built-in checks are protected
+    content, is_error = ex.execute("retract_assertion", {"check_id": "C2", "reason": "status is top-level"})
+    assert not is_error and result.checks[1].retracted == "status is top-level"
+    assert result.verdict == "PASS"
+    assert "1 retracted" in to_markdown(result) and "retracted by agent" in to_junit(result)
+
+
+def test_mock_error_rejected_where_sandbox_does_not_support_it():
+    from payagent.models import RunResult
+    from payagent.tools import MOCKABLE_TOOLS, ToolExecutor
+
+    assert "create_order" in MOCKABLE_TOOLS and "capture_authorization" not in MOCKABLE_TOOLS
+    result = RunResult(goal="g", started_at="t")
+    content, is_error = ToolExecutor(paypal=None, result=result).execute(
+        "capture_authorization", {"authorization_id": "A1", "mock_error": "INSTRUMENT_DECLINED"})
+    assert is_error and "create_order" in content and result.steps == []

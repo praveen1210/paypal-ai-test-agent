@@ -1,0 +1,1060 @@
+{
+  "goal": "After refunding 10 of a 20 USD capture, a refund request for 20 USD must be rejected rather than partially applied",
+  "started_at": "2026-11-08T18:38:08+00:00",
+  "finished_at": "2026-11-08T18:38:44+00:00",
+  "model": "claude-haiku-5.5",
+  "steps": [
+    {
+      "id": "S1",
+      "tool": "create_order",
+      "args": {
+        "amount": "20.00",
+        "currency": "USD",
+        "payment_method": "card",
+        "intent": "CAPTURE"
+      },
+      "expect": "success",
+      "response": {
+        "method": "POST",
+        "path": "/v2/checkout/orders",
+        "status": 201,
+        "body": {
+          "id": "7X066593VK660805U",
+          "intent": "CAPTURE",
+          "status": "COMPLETED",
+          "payment_source": {
+            "card": {
+              "name": "Sandbox Tester",
+              "last_digits": "1111",
+              "expiry": "2030-12",
+              "brand": "VISA",
+              "type": "CREDIT",
+              "bin_details": {}
+            }
+          },
+          "purchase_units": [
+            {
+              "reference_id": "default",
+              "amount": {
+                "currency_code": "USD",
+                "value": "20.00"
+              },
+              "payee": {
+                "email_address": "sb-ov4ue53787861@business.example.com",
+                "merchant_id": "5JAP36CHEPYNQ"
+              },
+              "soft_descriptor": "TEST STORE",
+              "supplementary_data": {
+                "risk": {
+                  "risk_level_indicator": "HIGH_RISK"
+                }
+              },
+              "payments": {
+                "captures": [
+                  {
+                    "id": "108361158K599311B",
+                    "status": "COMPLETED",
+                    "amount": {
+                      "currency_code": "USD",
+                      "value": "20.00"
+                    },
+                    "final_capture": true,
+                    "seller_protection": {
+                      "status": "NOT_ELIGIBLE"
+                    },
+                    "seller_receivable_breakdown": {
+                      "gross_amount": {
+                        "currency_code": "USD",
+                        "value": "20.00"
+                      },
+                      "paypal_fee": {
+                        "currency_code": "USD",
+                        "value": "1.01"
+                      },
+                      "net_amount": {
+                        "currency_code": "USD",
+                        "value": "18.99"
+                      }
+                    },
+                    "links": [
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/captures/108361158K599311B",
+                        "rel": "self",
+                        "method": "GET"
+                      },
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/payments/captures/108361158K599311B/refund",
+                        "rel": "refund",
+                        "method": "POST"
+                      },
+                      {
+                        "href": "https://api.sandbox.paypal.com/v2/checkout/orders/7X066593VK660805U",
+                        "rel": "up",
+                        "method": "GET"
+                      }
+                    ],
+                    "create_time": "2026-11-08T18:38:17Z",
+                    "update_time": "2026-11-08T18:38:17Z",
+                    "network_transaction_reference": {
+                      "id": "436601932518750",
+                      "network": "VISA"
+                    },
+                    "processor_response": {
+                      "avs_code": "A",
+                      "cvv_code": "M",
+                      "response_code": "0000"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "create_time": "2026-11-08T18:38:17Z",
+          "update_time": "2026-11-08T18:38:17Z",
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v2/checkout/orders/7X066593VK660805U",
+              "rel": "self",
+              "method": "GET"
+            }
+          ]
+        },
+        "debug_id": "f926386379268",
+        "request_body": {
+          "intent": "CAPTURE",
+          "purchase_units": [
+            {
+              "reference_id": "default",
+              "amount": {
+                "currency_code": "USD",
+                "value": "20.00"
+              }
+            }
+          ],
+          "payment_source": {
+            "card": {
+              "number": "************1111",
+              "expiry": "2030-12",
+              "name": "Sandbox Tester",
+              "billing_address": {
+                "address_line_1": "1 Main St",
+                "admin_area_2": "San Jose",
+                "admin_area_1": "CA",
+                "postal_code": "95131",
+                "country_code": "US"
+              }
+            }
+          }
+        },
+        "duration_ms": 5197
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "create_order returns HTTP 2xx",
+          "passed": true,
+          "expected": "2xx",
+          "actual": 201,
+          "step_id": "S1",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Order id is returned",
+          "passed": true,
+          "expected": "exists",
+          "actual": "7X066593VK660805U",
+          "step_id": "S1",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Order status is valid after create",
+          "passed": true,
+          "expected": [
+            "CREATED",
+            "APPROVED",
+            "PAYER_ACTION_REQUIRED",
+            "COMPLETED"
+          ],
+          "actual": "COMPLETED",
+          "step_id": "S1",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Order amount matches request",
+          "passed": true,
+          "expected": "20.00",
+          "actual": "20.00",
+          "step_id": "S1",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Order currency matches request",
+          "passed": true,
+          "expected": "USD",
+          "actual": "USD",
+          "step_id": "S1",
+          "source": "auto",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "tool": "get_capture",
+      "args": {
+        "capture_id": "108361158K599311B"
+      },
+      "expect": "success",
+      "response": {
+        "method": "GET",
+        "path": "/v2/payments/captures/108361158K599311B",
+        "status": 200,
+        "body": {
+          "id": "108361158K599311B",
+          "amount": {
+            "currency_code": "USD",
+            "value": "20.00"
+          },
+          "final_capture": true,
+          "seller_protection": {
+            "status": "NOT_ELIGIBLE"
+          },
+          "seller_receivable_breakdown": {
+            "gross_amount": {
+              "currency_code": "USD",
+              "value": "20.00"
+            },
+            "paypal_fee": {
+              "currency_code": "USD",
+              "value": "1.01"
+            },
+            "net_amount": {
+              "currency_code": "USD",
+              "value": "18.99"
+            }
+          },
+          "status": "COMPLETED",
+          "processor_response": {
+            "avs_code": "A",
+            "cvv_code": "M",
+            "response_code": "0000"
+          },
+          "supplementary_data": {
+            "related_ids": {
+              "order_id": "7X066593VK660805U"
+            }
+          },
+          "payee": {
+            "email_address": "sb-ov4ue53787861@business.example.com",
+            "merchant_id": "5JAP36CHEPYNQ"
+          },
+          "create_time": "2026-11-08T18:38:15Z",
+          "update_time": "2026-11-08T18:38:15Z",
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/captures/108361158K599311B",
+              "rel": "self",
+              "method": "GET"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/captures/108361158K599311B/refund",
+              "rel": "refund",
+              "method": "POST"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/checkout/orders/7X066593VK660805U",
+              "rel": "up",
+              "method": "GET"
+            }
+          ],
+          "network_transaction_reference": {
+            "id": "436601932518750",
+            "network": "VISA"
+          }
+        },
+        "debug_id": "f4943563e91db",
+        "request_body": null,
+        "duration_ms": 1557
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "get_capture returns HTTP 2xx",
+          "passed": true,
+          "expected": "2xx",
+          "actual": 200,
+          "step_id": "S2",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Fetched resource id matches",
+          "passed": true,
+          "expected": "108361158K599311B",
+          "actual": "108361158K599311B",
+          "step_id": "S2",
+          "source": "auto",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "tool": "refund_capture",
+      "args": {
+        "capture_id": "108361158K599311B",
+        "amount": "10.00",
+        "currency": "USD"
+      },
+      "expect": "success",
+      "response": {
+        "method": "POST",
+        "path": "/v2/payments/captures/108361158K599311B/refund",
+        "status": 201,
+        "body": {
+          "id": "2FS14489L8071434U",
+          "amount": {
+            "currency_code": "USD",
+            "value": "10.00"
+          },
+          "seller_payable_breakdown": {
+            "gross_amount": {
+              "currency_code": "USD",
+              "value": "10.00"
+            },
+            "paypal_fee": {
+              "currency_code": "USD",
+              "value": "0.00"
+            },
+            "net_amount": {
+              "currency_code": "USD",
+              "value": "10.00"
+            },
+            "total_refunded_amount": {
+              "currency_code": "USD",
+              "value": "10.00"
+            }
+          },
+          "status": "COMPLETED",
+          "create_time": "2026-11-08T10:38:24-08:00",
+          "update_time": "2026-11-08T10:38:24-08:00",
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/refunds/2FS14489L8071434U",
+              "rel": "self",
+              "method": "GET"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/captures/108361158K599311B",
+              "rel": "up",
+              "method": "GET"
+            }
+          ]
+        },
+        "debug_id": "f813701603235",
+        "request_body": {
+          "amount": {
+            "currency_code": "USD",
+            "value": "10.00"
+          }
+        },
+        "duration_ms": 1703
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "refund_capture returns HTTP 2xx",
+          "passed": true,
+          "expected": "2xx",
+          "actual": 201,
+          "step_id": "S3",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Refund status is COMPLETED or PENDING",
+          "passed": true,
+          "expected": [
+            "COMPLETED",
+            "PENDING"
+          ],
+          "actual": "COMPLETED",
+          "step_id": "S3",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Refunded amount matches request",
+          "passed": true,
+          "expected": "10.00",
+          "actual": "10.00",
+          "step_id": "S3",
+          "source": "auto",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "tool": "get_capture",
+      "args": {
+        "capture_id": "108361158K599311B"
+      },
+      "expect": "success",
+      "response": {
+        "method": "GET",
+        "path": "/v2/payments/captures/108361158K599311B",
+        "status": 200,
+        "body": {
+          "id": "108361158K599311B",
+          "amount": {
+            "currency_code": "USD",
+            "value": "20.00"
+          },
+          "final_capture": true,
+          "seller_protection": {
+            "status": "NOT_ELIGIBLE"
+          },
+          "seller_receivable_breakdown": {
+            "gross_amount": {
+              "currency_code": "USD",
+              "value": "20.00"
+            },
+            "paypal_fee": {
+              "currency_code": "USD",
+              "value": "1.01"
+            },
+            "net_amount": {
+              "currency_code": "USD",
+              "value": "18.99"
+            }
+          },
+          "status": "PARTIALLY_REFUNDED",
+          "processor_response": {
+            "avs_code": "A",
+            "cvv_code": "M",
+            "response_code": "0000"
+          },
+          "supplementary_data": {
+            "related_ids": {
+              "order_id": "7X066593VK660805U"
+            }
+          },
+          "payee": {
+            "email_address": "sb-ov4ue53787861@business.example.com",
+            "merchant_id": "5JAP36CHEPYNQ"
+          },
+          "create_time": "2026-11-08T18:38:15Z",
+          "update_time": "2026-11-08T18:38:24Z",
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/captures/108361158K599311B",
+              "rel": "self",
+              "method": "GET"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/captures/108361158K599311B/refund",
+              "rel": "refund",
+              "method": "POST"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/checkout/orders/7X066593VK660805U",
+              "rel": "up",
+              "method": "GET"
+            }
+          ]
+        },
+        "debug_id": "f550531d472f2",
+        "request_body": null,
+        "duration_ms": 1435
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "get_capture returns HTTP 2xx",
+          "passed": true,
+          "expected": "2xx",
+          "actual": 200,
+          "step_id": "S4",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Fetched resource id matches",
+          "passed": true,
+          "expected": "108361158K599311B",
+          "actual": "108361158K599311B",
+          "step_id": "S4",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Capture is PARTIALLY_REFUNDED after the 10.00 partial refund",
+          "passed": true,
+          "expected": "PARTIALLY_REFUNDED",
+          "actual": "PARTIALLY_REFUNDED",
+          "step_id": "S4",
+          "source": "agent",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S5",
+      "tool": "refund_capture",
+      "args": {
+        "capture_id": "108361158K599311B",
+        "amount": "20.00",
+        "currency": "USD",
+        "expect": "error",
+        "expected_issue": "REFUND_AMOUNT_EXCEEDED"
+      },
+      "expect": "error",
+      "response": {
+        "method": "POST",
+        "path": "/v2/payments/captures/108361158K599311B/refund",
+        "status": 201,
+        "body": {
+          "id": "02P44233KF644720T",
+          "amount": {
+            "currency_code": "USD",
+            "value": "10.00"
+          },
+          "seller_payable_breakdown": {
+            "gross_amount": {
+              "currency_code": "USD",
+              "value": "10.00"
+            },
+            "paypal_fee": {
+              "currency_code": "USD",
+              "value": "0.00"
+            },
+            "net_amount": {
+              "currency_code": "USD",
+              "value": "10.00"
+            },
+            "total_refunded_amount": {
+              "currency_code": "USD",
+              "value": "20.00"
+            }
+          },
+          "status": "COMPLETED",
+          "create_time": "2026-11-08T10:38:29-08:00",
+          "update_time": "2026-11-08T10:38:29-08:00",
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/refunds/02P44233KF644720T",
+              "rel": "self",
+              "method": "GET"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/captures/108361158K599311B",
+              "rel": "up",
+              "method": "GET"
+            }
+          ]
+        },
+        "debug_id": "f405420858ada",
+        "request_body": {
+          "amount": {
+            "currency_code": "USD",
+            "value": "20.00"
+          }
+        },
+        "duration_ms": 1811
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "refund_capture is rejected with a 4xx error",
+          "passed": false,
+          "expected": "4xx",
+          "actual": 201,
+          "step_id": "S5",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Error body has PayPal 'name' field",
+          "passed": false,
+          "expected": "exists",
+          "actual": "<missing>",
+          "step_id": "S5",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "PayPal debug_id returned for support tracing (header or body)",
+          "passed": true,
+          "expected": "exists",
+          "actual": "f405420858ada",
+          "step_id": "S5",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Error issue code is REFUND_AMOUNT_EXCEEDED",
+          "passed": false,
+          "expected": "REFUND_AMOUNT_EXCEEDED",
+          "actual": [],
+          "step_id": "S5",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Over-refund of 20.00 after 10.00 refunded must return a 4xx error",
+          "passed": false,
+          "expected": 400,
+          "actual": 201,
+          "step_id": "S5",
+          "source": "agent",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S6",
+      "tool": "get_capture",
+      "args": {
+        "capture_id": "108361158K599311B"
+      },
+      "expect": "success",
+      "response": {
+        "method": "GET",
+        "path": "/v2/payments/captures/108361158K599311B",
+        "status": 200,
+        "body": {
+          "id": "108361158K599311B",
+          "amount": {
+            "currency_code": "USD",
+            "value": "20.00"
+          },
+          "final_capture": true,
+          "seller_protection": {
+            "status": "NOT_ELIGIBLE"
+          },
+          "seller_receivable_breakdown": {
+            "gross_amount": {
+              "currency_code": "USD",
+              "value": "20.00"
+            },
+            "paypal_fee": {
+              "currency_code": "USD",
+              "value": "1.01"
+            },
+            "net_amount": {
+              "currency_code": "USD",
+              "value": "18.99"
+            }
+          },
+          "status": "REFUNDED",
+          "processor_response": {
+            "avs_code": "A",
+            "cvv_code": "M",
+            "response_code": "0000"
+          },
+          "supplementary_data": {
+            "related_ids": {
+              "order_id": "7X066593VK660805U"
+            }
+          },
+          "payee": {
+            "email_address": "sb-ov4ue53787861@business.example.com",
+            "merchant_id": "5JAP36CHEPYNQ"
+          },
+          "create_time": "2026-11-08T18:38:15Z",
+          "update_time": "2026-11-08T18:38:29Z",
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/captures/108361158K599311B",
+              "rel": "self",
+              "method": "GET"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/captures/108361158K599311B/refund",
+              "rel": "refund",
+              "method": "POST"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/checkout/orders/7X066593VK660805U",
+              "rel": "up",
+              "method": "GET"
+            }
+          ]
+        },
+        "debug_id": "f48038744d92d",
+        "request_body": null,
+        "duration_ms": 1289
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "get_capture returns HTTP 2xx",
+          "passed": true,
+          "expected": "2xx",
+          "actual": 200,
+          "step_id": "S6",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Fetched resource id matches",
+          "passed": true,
+          "expected": "108361158K599311B",
+          "actual": "108361158K599311B",
+          "step_id": "S6",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Capture should still be PARTIALLY_REFUNDED (10.00 remaining) if the over-refund was rejected",
+          "passed": false,
+          "expected": "PARTIALLY_REFUNDED",
+          "actual": "REFUNDED",
+          "step_id": "S6",
+          "source": "agent",
+          "retracted": null
+        }
+      ]
+    },
+    {
+      "id": "S7",
+      "tool": "get_refund",
+      "args": {
+        "refund_id": "02P44233KF644720T"
+      },
+      "expect": "success",
+      "response": {
+        "method": "GET",
+        "path": "/v2/payments/refunds/02P44233KF644720T",
+        "status": 200,
+        "body": {
+          "id": "02P44233KF644720T",
+          "amount": {
+            "currency_code": "USD",
+            "value": "10.00"
+          },
+          "seller_payable_breakdown": {
+            "gross_amount": {
+              "currency_code": "USD",
+              "value": "10.00"
+            },
+            "paypal_fee": {
+              "currency_code": "USD",
+              "value": "0.00"
+            },
+            "net_amount": {
+              "currency_code": "USD",
+              "value": "10.00"
+            },
+            "total_refunded_amount": {
+              "currency_code": "USD",
+              "value": "20.00"
+            }
+          },
+          "status": "COMPLETED",
+          "create_time": "2026-11-08T10:38:29-08:00",
+          "update_time": "2026-11-08T10:38:29-08:00",
+          "payer": {
+            "email_address": "sb-ov4ue53787861@business.example.com",
+            "merchant_id": "5JAP36CHEPYNQ"
+          },
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/refunds/02P44233KF644720T",
+              "rel": "self",
+              "method": "GET"
+            },
+            {
+              "href": "https://api.sandbox.paypal.com/v2/payments/captures/108361158K599311B",
+              "rel": "up",
+              "method": "GET"
+            }
+          ]
+        },
+        "debug_id": "f8416565d9a58",
+        "request_body": null,
+        "duration_ms": 1255
+      },
+      "error": null,
+      "checks": [
+        {
+          "description": "get_refund returns HTTP 2xx",
+          "passed": true,
+          "expected": "2xx",
+          "actual": 200,
+          "step_id": "S7",
+          "source": "auto",
+          "retracted": null
+        },
+        {
+          "description": "Fetched resource id matches",
+          "passed": true,
+          "expected": "02P44233KF644720T",
+          "actual": "02P44233KF644720T",
+          "step_id": "S7",
+          "source": "auto",
+          "retracted": null
+        }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "description": "create_order returns HTTP 2xx",
+      "passed": true,
+      "expected": "2xx",
+      "actual": 201,
+      "step_id": "S1",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Order id is returned",
+      "passed": true,
+      "expected": "exists",
+      "actual": "7X066593VK660805U",
+      "step_id": "S1",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Order status is valid after create",
+      "passed": true,
+      "expected": [
+        "CREATED",
+        "APPROVED",
+        "PAYER_ACTION_REQUIRED",
+        "COMPLETED"
+      ],
+      "actual": "COMPLETED",
+      "step_id": "S1",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Order amount matches request",
+      "passed": true,
+      "expected": "20.00",
+      "actual": "20.00",
+      "step_id": "S1",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Order currency matches request",
+      "passed": true,
+      "expected": "USD",
+      "actual": "USD",
+      "step_id": "S1",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "get_capture returns HTTP 2xx",
+      "passed": true,
+      "expected": "2xx",
+      "actual": 200,
+      "step_id": "S2",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Fetched resource id matches",
+      "passed": true,
+      "expected": "108361158K599311B",
+      "actual": "108361158K599311B",
+      "step_id": "S2",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "refund_capture returns HTTP 2xx",
+      "passed": true,
+      "expected": "2xx",
+      "actual": 201,
+      "step_id": "S3",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Refund status is COMPLETED or PENDING",
+      "passed": true,
+      "expected": [
+        "COMPLETED",
+        "PENDING"
+      ],
+      "actual": "COMPLETED",
+      "step_id": "S3",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Refunded amount matches request",
+      "passed": true,
+      "expected": "10.00",
+      "actual": "10.00",
+      "step_id": "S3",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "get_capture returns HTTP 2xx",
+      "passed": true,
+      "expected": "2xx",
+      "actual": 200,
+      "step_id": "S4",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Fetched resource id matches",
+      "passed": true,
+      "expected": "108361158K599311B",
+      "actual": "108361158K599311B",
+      "step_id": "S4",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "refund_capture is rejected with a 4xx error",
+      "passed": false,
+      "expected": "4xx",
+      "actual": 201,
+      "step_id": "S5",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Error body has PayPal 'name' field",
+      "passed": false,
+      "expected": "exists",
+      "actual": "<missing>",
+      "step_id": "S5",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "PayPal debug_id returned for support tracing (header or body)",
+      "passed": true,
+      "expected": "exists",
+      "actual": "f405420858ada",
+      "step_id": "S5",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Error issue code is REFUND_AMOUNT_EXCEEDED",
+      "passed": false,
+      "expected": "REFUND_AMOUNT_EXCEEDED",
+      "actual": [],
+      "step_id": "S5",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "get_capture returns HTTP 2xx",
+      "passed": true,
+      "expected": "2xx",
+      "actual": 200,
+      "step_id": "S6",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Fetched resource id matches",
+      "passed": true,
+      "expected": "108361158K599311B",
+      "actual": "108361158K599311B",
+      "step_id": "S6",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "get_refund returns HTTP 2xx",
+      "passed": true,
+      "expected": "2xx",
+      "actual": 200,
+      "step_id": "S7",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Fetched resource id matches",
+      "passed": true,
+      "expected": "02P44233KF644720T",
+      "actual": "02P44233KF644720T",
+      "step_id": "S7",
+      "source": "auto",
+      "retracted": null
+    },
+    {
+      "description": "Capture is PARTIALLY_REFUNDED after the 10.00 partial refund",
+      "passed": true,
+      "expected": "PARTIALLY_REFUNDED",
+      "actual": "PARTIALLY_REFUNDED",
+      "step_id": "S4",
+      "source": "agent",
+      "retracted": null
+    },
+    {
+      "description": "Over-refund of 20.00 after 10.00 refunded must return a 4xx error",
+      "passed": false,
+      "expected": 400,
+      "actual": 201,
+      "step_id": "S5",
+      "source": "agent",
+      "retracted": null
+    },
+    {
+      "description": "Capture should still be PARTIALLY_REFUNDED (10.00 remaining) if the over-refund was rejected",
+      "passed": false,
+      "expected": "PARTIALLY_REFUNDED",
+      "actual": "REFUNDED",
+      "step_id": "S6",
+      "source": "agent",
+      "retracted": null
+    }
+  ],
+  "findings": [
+    {
+      "title": "Over-refund accepted and silently truncated to remaining balance",
+      "severity": "critical",
+      "explanation": "After refund 2FS14489L8071434U (10.00) on capture 108361158K599311B (20.00), a refund request for 20.00 returned HTTP 201 instead of a 4xx REFUND_AMOUNT_EXCEEDED error. The refund created (02P44233KF644720T) is for 10.00, not 20.00, so the requested amount was reduced to the remaining balance without telling the caller. The capture is now REFUNDED with total_refunded_amount 20.00. The likely cause is that the refund handler caps the amount to the remaining refundable balance instead of validating the request against it and rejecting it. Developers should check the refund validation path in the sandbox integration and confirm whether this is a PayPal sandbox behaviour or a merchant-side or proxy-side bug. Business impact: a merchant or support agent who asks for 20.00 back gets 10.00 back with a success response, so the customer's expected refund amount and the books disagree, and the refund ledger no longer matches the request. Customers could be under-refunded without notice, and any reconciliation that assumes requested equals processed will break.",
+      "step_ids": [
+        "S5",
+        "S6",
+        "S7"
+      ]
+    },
+    {
+      "title": "Over-refund test expectation not met (expected 4xx, got 201)",
+      "severity": "major",
+      "explanation": "The negative check required an error with REFUND_AMOUNT_EXCEEDED and the call returned 201 Created. The error-code check also failed because no details[] issue was returned. This is the same defect as above, shown at the API response level.",
+      "step_ids": [
+        "S5"
+      ]
+    }
+  ],
+  "summary": "The core business rule failed. After a valid 10.00 partial refund on a 20.00 capture, a second refund request for 20.00 was not rejected. PayPal returned HTTP 201 and created refund 02P44233KF644720T for 10.00 (the remaining balance), so the request was partially applied. The capture is now fully REFUNDED with total refunded 20.00. Setup steps passed: order 7X066593VK660805U was COMPLETED, capture 108361158K599311B was 20.00 COMPLETED, and the first 10.00 refund (2FS14489L8071434U) succeeded and left the capture PARTIALLY_REFUNDED.",
+  "plan": [
+    "S1: create_order 20.00 USD card, intent CAPTURE (card charged at create; take capture id from purchase_units[0].payments)",
+    "S2: get_order to confirm COMPLETED and capture id",
+    "S3: get_capture to confirm 20.00 COMPLETED",
+    "S4: refund_capture 10.00 partial refund",
+    "S5: get_capture to confirm PARTIALLY_REFUNDED and 10.00 refunded",
+    "S6: refund_capture 20.00 with expect=error, expected_issue REFUND_AMOUNT_EXCEEDED (must be rejected)",
+    "S7: get_capture to confirm no extra refund was applied (still 10.00 refunded, 10.00 remaining)",
+    "S8: refund_capture 10.00 remaining succeeds only if state is consistent (optional confirmation)"
+  ],
+  "agent_error": null,
+  "usage": {
+    "input_tokens": 62963,
+    "output_tokens": 2734
+  },
+  "verdict": "FAIL"
+}

@@ -11,20 +11,36 @@ import json
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from .config import Settings
+from .limits import DemoLimiter, LimitExceeded
 from .models import RunResult, Step
-from .report import to_markdown
+from .report import to_junit, to_markdown
 from .runner import run_goal
 
 STATIC = Path(__file__).parent / "static"
 
 app = FastAPI(title="AI Payment Test Agent", version="0.1.0")
 _RUNNING: set[asyncio.Task] = set()
+limiter = DemoLimiter.from_env()
+
+
+@app.exception_handler(LimitExceeded)
+async def _limit_exceeded(_request: Request, exc: LimitExceeded) -> JSONResponse:
+    return JSONResponse(status_code=429, content={"detail": str(exc)},
+                        headers={"Retry-After": str(exc.retry_after)})
+
+
+def _client_id(request: Request) -> str:
+    # Behind Render's proxy the real client IP is the last X-Forwarded-For entry (earlier ones are client-supplied).
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[-1].strip()
+    return request.client.host if request.client else "unknown"
 
 EXAMPLE_GOALS = [
     "Test a partial refund on a captured order",
@@ -54,6 +70,7 @@ def _settings(fake: bool) -> Settings:
 def _result_payload(result: RunResult) -> dict[str, Any]:
     data = result.to_dict()
     data["markdown"] = to_markdown(result)
+    data["junit"] = to_junit(result)
     return data
 
 
@@ -70,7 +87,7 @@ def _step_summary(step: Step) -> dict[str, Any]:
 def _event_payload(kind: str, data: dict[str, Any]) -> dict[str, Any] | None:
     if kind == "step_finished":
         return _step_summary(data["step"])
-    if kind == "check":
+    if kind in ("check", "check_retracted"):
         return dataclasses.asdict(data["check"])
     if kind == "finished":
         return None  # the full result is sent as the final "result" event
@@ -93,15 +110,22 @@ def examples() -> list[str]:
 
 
 @app.post("/api/run")
-async def run(req: RunRequest) -> dict:
-    result = await run_in_threadpool(run_goal, req.goal, _settings(req.fake))
+async def run(req: RunRequest, request: Request) -> dict:
+    settings = _settings(req.fake)
+    limiter.acquire(_client_id(request))
+    try:
+        result = await run_in_threadpool(run_goal, req.goal, settings)
+    finally:
+        limiter.release()
     return _result_payload(result)
 
 
 @app.get("/api/run/stream")
-async def run_stream(goal: str = Query(min_length=5, max_length=500), fake: bool = False) -> StreamingResponse:
+async def run_stream(request: Request, goal: str = Query(min_length=5, max_length=500),
+                     fake: bool = False) -> StreamingResponse:
     """Server-Sent Events: plan, step_started, step_finished, check, agent_note, approval_needed, result | error."""
     settings = _settings(fake)
+    limiter.acquire(_client_id(request))
     loop = asyncio.get_running_loop()
     queue: asyncio.Queue[tuple[str, Any] | None] = asyncio.Queue()
 
@@ -117,6 +141,7 @@ async def run_stream(goal: str = Query(min_length=5, max_length=500), fake: bool
         except Exception as exc:  # surface to the browser instead of a silent hang
             await queue.put(("error", {"message": f"{type(exc).__name__}: {exc}"}))
         finally:
+            limiter.release()
             await queue.put(None)
 
     task = asyncio.create_task(worker())

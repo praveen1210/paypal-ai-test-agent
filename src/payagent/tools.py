@@ -84,10 +84,13 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
               {"authorization_id": {"type": "string"}}, ["authorization_id"], mockable=False),
     _api_tool(
         "capture_authorization",
-        "POST /v2/payments/authorizations/{authorization_id}/capture. Omit amount for full capture.",
+        "POST /v2/payments/authorizations/{authorization_id}/capture. Omit amount for full capture. "
+        "No mock_error here: the sandbox answers mocks on this endpoint with a bare 403. To simulate a card "
+        "decline, use mock_error on create_order (card orders are charged at create time).",
         {"authorization_id": {"type": "string"}, "amount": _AMOUNT, "currency": _CURRENCY,
          "final_capture": {"type": "boolean"}},
         ["authorization_id"],
+        mockable=False,
     ),
     _api_tool("void_authorization", "POST /v2/payments/authorizations/{authorization_id}/void.",
               {"authorization_id": {"type": "string"}}, ["authorization_id"]),
@@ -134,6 +137,21 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
         },
     },
     {
+        "name": "retract_assertion",
+        "description": "Withdraw one of YOUR OWN assert_field checks when the check itself was wrong (wrong path, "
+        "wrong expectation), never to hide a product failure. Built-in checks cannot be retracted. The retraction "
+        "and your reason are shown in the report.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "check_id": {"type": "string", "description": "The check_id returned by assert_field, e.g. 'C12'."},
+                "reason": {"type": "string", "description": "Why the assertion was wrong."},
+            },
+            "required": ["check_id", "reason"],
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "finish",
         "description": "Call LAST, once testing is complete. Provide a plain-English summary and one finding per "
         "failed check or suspicious behaviour, explaining the likely bug and its business impact.",
@@ -167,6 +185,7 @@ API_TOOLS = {
     "capture_authorization", "void_authorization", "get_capture", "refund_capture", "get_refund",
 }
 _META_ARGS = {"expect", "expected_issue"}
+MOCKABLE_TOOLS = {t["name"] for t in TOOL_DEFINITIONS if "mock_error" in t["input_schema"]["properties"]}
 _MAX_BODY_CHARS = 6000
 
 
@@ -194,6 +213,10 @@ class ToolExecutor:
 
     # --------------------------------------------------------------- API steps
     def _api_call(self, name: str, args: dict[str, Any]) -> str:
+        if args.get("mock_error") and name not in MOCKABLE_TOOLS:
+            raise ValueError(
+                f"{name} does not accept mock_error (the sandbox returns a bare 403 for mocks there). "
+                "To simulate a card decline, call create_order with mock_error; card orders are charged at create.")
         step = Step(id=f"S{len(self.result.steps) + 1}", tool=name, args=dict(args),
                     expect=args.get("expect", "success"))
         self.result.steps.append(step)
@@ -252,7 +275,27 @@ class ToolExecutor:
         step.checks.append(check)
         self.result.checks.append(check)
         self.on_event("check", {"check": check})
-        return json.dumps({"passed": passed, "actual": check.actual})
+        reply: dict[str, Any] = {"check_id": f"C{len(self.result.checks)}", "passed": passed, "actual": check.actual}
+        if not passed:
+            body = step.response.body
+            reply["hint"] = (f"Recorded as a FAILURE. {step.id} top-level keys: "
+                             f"{sorted(body) if isinstance(body, dict) else []}. If your assertion (path or "
+                             "expectation) was wrong rather than the API, call retract_assertion with this check_id.")
+        return json.dumps(reply)
+
+    def _tool_retract_assertion(self, args: dict[str, Any]) -> str:
+        ref = str(args["check_id"]).strip().upper().removeprefix("C")
+        if not ref.isdigit() or not 1 <= int(ref) <= len(self.result.checks):
+            raise ValueError(f"unknown check_id {args['check_id']!r}")
+        check = self.result.checks[int(ref) - 1]
+        if check.source != "agent":
+            raise ValueError("built-in checks cannot be retracted; only your own assert_field checks")
+        reason = str(args["reason"]).strip()
+        if not reason:
+            raise ValueError("a reason is required")
+        check.retracted = reason
+        self.on_event("check_retracted", {"check": check})
+        return json.dumps({"retracted": f"C{ref}", "reason": reason})
 
     def _tool_wait_for_buyer_approval(self, args: dict[str, Any]) -> str:
         order_id = args["order_id"]

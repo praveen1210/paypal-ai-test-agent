@@ -17,7 +17,8 @@
   .row { display:flex; gap:12px; align-items:center; margin-top:12px; flex-wrap:wrap; }
   button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:10px 18px; font:inherit; font-weight:600; cursor:pointer; }
   button:disabled { opacity:.5; cursor:wait; }
-  .chips button { background:#24304a; font-weight:400; padding:6px 10px; font-size:13px; }
+  .chips button, .downloads button { background:#24304a; font-weight:400; padding:6px 10px; font-size:13px; }
+  .downloads button:hover, .chips button:hover { background:#2e3d5e; }
   .grid { display:grid; grid-template-columns: 1fr 1.6fr; gap:18px; }
   @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
   .verdict { font-size:24px; font-weight:700; }
@@ -64,6 +65,12 @@
       <div id="stats" class="muted"></div>
       <p id="summary"></p>
       <div id="findings"></div>
+      <div class="row downloads" id="downloads" hidden>
+        <span class="muted">Download report:</span>
+        <button type="button" data-kind="md">Markdown</button>
+        <button type="button" data-kind="json">JSON</button>
+        <button type="button" data-kind="xml">JUnit XML</button>
+      </div>
     </div>
     <div class="grid">
       <div>
@@ -84,7 +91,6 @@ const $ = (id) => document.getElementById(id);
 const el = (tag, text, cls) => { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; };
 const fmt = (v) => typeof v === "string" ? v : JSON.stringify(v);
 const pill = (text, cls) => el("span", text, "pill " + cls);
-let source = null;
 
 fetch("/api/examples").then((r) => r.json()).then((goals) => {
   goals.forEach((g) => { const b = el("button", g); b.type = "button"; b.onclick = () => { $("goal").value = g; }; $("examples").appendChild(b); });
@@ -92,7 +98,9 @@ fetch("/api/examples").then((r) => r.json()).then((goals) => {
 
 function addCheckRow(c) {
   const tr = el("tr"); tr.className = "new";
-  [c.passed ? "✅" : "❌", c.step_id || "", c.description, fmt(c.expected), fmt(c.actual)].forEach((v) => tr.appendChild(el("td", v)));
+  const desc = c.retracted ? `${c.description} (retracted by agent: ${c.retracted})` : c.description;
+  [c.retracted ? "↩️" : c.passed ? "✅" : "❌", c.step_id || "", desc, fmt(c.expected), fmt(c.actual)].forEach((v) => tr.appendChild(el("td", v)));
+  if (c.retracted) tr.style.opacity = ".55";
   $("checks").appendChild(tr);
 }
 
@@ -107,12 +115,12 @@ function stepCells(tr, s) {
   else http.textContent = s.status ?? "ERR";
   tr.appendChild(http);
   const chk = el("td");
-  if (s.checks) { const ok = s.checks.filter((c) => c.passed).length; chk.appendChild(pill(`${ok}/${s.checks.length}`, ok === s.checks.length ? "ok" : "bad")); }
+  if (s.checks) { const live = s.checks.filter((c) => !c.retracted); const ok = live.filter((c) => c.passed).length; chk.appendChild(pill(`${ok}/${live.length}`, ok === live.length ? "ok" : "bad")); }
   tr.appendChild(chk);
 }
 
 function reset() {
-  $("live").hidden = false;
+  $("live").hidden = false; $("downloads").hidden = true; lastResult = null;
   $("verdict").replaceChildren(el("span", "", "spinner"), document.createTextNode(" Running"));
   $("verdict").className = "verdict RUNNING";
   $("stats").textContent = ""; $("summary").textContent = ""; $("findings").replaceChildren();
@@ -120,44 +128,80 @@ function reset() {
   $("log").replaceChildren(); $("steps").replaceChildren(); $("checks").replaceChildren();
 }
 
-function finish(msg) {
-  if (source) { source.close(); source = null; }
+function finish(msg, failed) {
   $("run").disabled = false; $("status").textContent = msg || "";
+  if (failed) { $("verdict").textContent = "Not run"; $("verdict").className = "verdict INCONCLUSIVE"; }
 }
 
-$("run").onclick = () => {
+const handlers = {
+  plan: (d) => $("plan").replaceChildren(...d.steps.map((s) => el("li", s))),
+  agent_note: (d) => { $("log").appendChild(el("p", d.text)); $("log").scrollTop = 1e9; },
+  step_started: (d) => {
+    const tr = el("tr"); tr.id = "row-" + d.step_id; tr.className = "new";
+    stepCells(tr, { id: d.step_id, tool: d.tool, expect: (d.args || {}).expect }); $("steps").appendChild(tr);
+  },
+  step_finished: (s) => { const tr = $("row-" + s.id) || $("steps").appendChild(el("tr")); stepCells(tr, s); s.checks.forEach(addCheckRow); },
+  check: (c) => addCheckRow(c),
+  check_retracted: (c) => $("log").appendChild(el("p", `Retracted my check "${c.description}": ${c.retracted}`)),
+  approval_needed: (d) => {
+    const p = el("p"); p.appendChild(document.createTextNode("Buyer approval needed: "));
+    const a = el("a", "open approval page"); a.href = d.url; a.target = "_blank"; a.rel = "noopener"; p.appendChild(a); $("log").appendChild(p);
+  },
+  result: (d) => { renderResult(d); finish(); },
+  error: (d) => finish("Error: " + d.message, true),
+};
+
+// fetch + manual SSE parsing (unlike EventSource, this can read the 429 "demo busy" message).
+$("run").onclick = async () => {
   const goal = $("goal").value.trim();
   if (goal.length < 5) { $("status").textContent = "Enter a test goal first."; return; }
   reset(); $("run").disabled = true; $("status").textContent = "";
   const qs = new URLSearchParams({ goal, fake: $("fake").checked });
-  source = new EventSource("/api/run/stream?" + qs);
-
-  source.addEventListener("plan", (e) => { $("plan").replaceChildren(...JSON.parse(e.data).steps.map((s) => el("li", s))); });
-  source.addEventListener("agent_note", (e) => { const p = el("p", JSON.parse(e.data).text); $("log").appendChild(p); $("log").scrollTop = 1e9; });
-  source.addEventListener("step_started", (e) => {
-    const d = JSON.parse(e.data); const tr = el("tr"); tr.id = "row-" + d.step_id; tr.className = "new";
-    stepCells(tr, { id: d.step_id, tool: d.tool, expect: (d.args || {}).expect }); $("steps").appendChild(tr);
-  });
-  source.addEventListener("step_finished", (e) => {
-    const s = JSON.parse(e.data); const tr = $("row-" + s.id) || $("steps").appendChild(el("tr"));
-    stepCells(tr, s); s.checks.forEach(addCheckRow);
-  });
-  source.addEventListener("check", (e) => addCheckRow(JSON.parse(e.data)));
-  source.addEventListener("approval_needed", (e) => {
-    const d = JSON.parse(e.data); const p = el("p"); p.appendChild(document.createTextNode("Buyer approval needed: "));
-    const a = el("a", "open approval page"); a.href = d.url; a.target = "_blank"; a.rel = "noopener"; p.appendChild(a); $("log").appendChild(p);
-  });
-  source.addEventListener("result", (e) => { renderResult(JSON.parse(e.data)); finish(); });
-  source.addEventListener("error", (e) => {
-    if (e.data) { finish("Error: " + JSON.parse(e.data).message); return; }
-    if (source && source.readyState !== EventSource.OPEN) finish("Connection lost or the request was rejected (check server logs / .env).");
-  });
+  let gotResult = false;
+  try {
+    const res = await fetch("/api/run/stream?" + qs, { headers: { Accept: "text/event-stream" } });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const detail = Array.isArray(body.detail) ? "Goal must be 5-500 characters." : (body.detail || res.statusText);
+      finish(detail, true); return;
+    }
+    const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += value;
+      let idx;
+      while ((idx = buf.indexOf("\n\n")) >= 0) {
+        const block = buf.slice(0, idx); buf = buf.slice(idx + 2);
+        const kind = (block.match(/^event: (.*)$/m) || [])[1];
+        const data = (block.match(/^data: (.*)$/m) || [])[1];
+        if (kind && data && handlers[kind]) { if (kind === "result") gotResult = true; handlers[kind](JSON.parse(data)); }
+      }
+    }
+    if (!gotResult && $("run").disabled) finish("The connection closed before the run finished.", true);
+  } catch (err) { finish("Network error: " + err.message, true); }
 };
 
+let lastResult = null;
+const slug = () => (lastResult.goal.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || "report");
+document.querySelectorAll("#downloads button").forEach((b) => b.onclick = () => {
+  if (!lastResult) return;
+  const k = b.dataset.kind;
+  const { markdown, junit, ...json } = lastResult;
+  const content = k === "md" ? markdown : k === "xml" ? junit : JSON.stringify(json, null, 2);
+  const type = k === "md" ? "text/markdown" : k === "xml" ? "application/xml" : "application/json";
+  const a = el("a"); a.href = URL.createObjectURL(new Blob([content], { type })); a.download = `${slug()}.${k}`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+
 function renderResult(d) {
+  lastResult = d; $("downloads").hidden = false;
   $("verdict").textContent = d.verdict; $("verdict").className = "verdict " + d.verdict;
-  const passed = d.checks.filter((c) => c.passed).length;
-  $("stats").textContent = `${passed}/${d.checks.length} checks passed · ${d.steps.length} API calls · ${d.model}` + (d.agent_error ? ` · ${d.agent_error}` : "");
+  const active = d.checks.filter((c) => !c.retracted);
+  const passed = active.filter((c) => c.passed).length;
+  const retracted = d.checks.length - active.length;
+  $("stats").textContent = `${passed}/${active.length} checks passed` + (retracted ? ` (${retracted} retracted)` : "") + ` · ${d.steps.length} API calls · ${d.model}` + (d.agent_error ? ` · ${d.agent_error}` : "");
   $("summary").textContent = d.summary;
   $("findings").replaceChildren(...d.findings.map((f) => {
     const box = el("div", undefined, "finding " + f.severity);

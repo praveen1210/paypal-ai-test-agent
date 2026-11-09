@@ -29,6 +29,7 @@ class Check:
     actual: Any = None
     step_id: str | None = None
     source: str = "auto"  # "auto" (built-in rule) or "agent" (assert_field)
+    retracted: str | None = None  # agent's reason when it withdrew its own faulty assertion; kept for audit
 
 
 @dataclass
@@ -64,11 +65,16 @@ class RunResult:
     agent_error: str | None = None
     usage: dict[str, int] = field(default_factory=dict)
 
+    def active_checks(self) -> list[Check]:
+        """Checks that count toward the verdict (retracted agent assertions are excluded)."""
+        return [c for c in self.checks if not c.retracted]
+
     @property
     def verdict(self) -> str:
-        if self.agent_error or not self.checks:
+        active = self.active_checks()
+        if self.agent_error or not active:
             return "INCONCLUSIVE"
-        return "PASS" if all(c.passed for c in self.checks) else "FAIL"
+        return "PASS" if all(c.passed for c in active) else "FAIL"
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)

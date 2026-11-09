@@ -10,10 +10,11 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import sys
+from pathlib import Path
 from typing import Any
 
 from .config import Settings
-from .report import save, to_markdown
+from .report import save, to_junit, to_markdown
 from .runner import run_goal
 
 EXIT = {"PASS": 0, "FAIL": 1, "INCONCLUSIVE": 2}
@@ -38,6 +39,8 @@ def _print_event(kind: str, data: dict[str, Any]) -> None:
     elif kind == "check":
         c = data["check"]
         print(f"   {'PASS' if c.passed else 'FAIL'} [assert] {c.description} (actual={c.actual!r})")
+    elif kind == "check_retracted":
+        print(f"   RETRACTED [assert] {data['check'].description}: {data['check'].retracted}")
     elif kind == "approval_needed":
         print(f"\n*** Buyer approval needed. Open and approve with a sandbox buyer account:\n    {data['url']}\n")
     elif kind == "agent_note":
@@ -51,6 +54,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], help="Claude effort level.")
     parser.add_argument("--out", help="Reports directory (default: REPORTS_DIR or ./reports).")
     parser.add_argument("--quiet", action="store_true", help="Only print the final report.")
+    parser.add_argument("--junit", metavar="PATH", help="Also write JUnit XML to PATH (for Jenkins / Azure DevOps).")
     args = parser.parse_args(argv)
     # Windows consoles default to cp1252 and crash on the report's emoji.
     for stream in (sys.stdout, sys.stderr):
@@ -74,8 +78,11 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     md_path, json_path = save(result, settings.reports_dir)  # save first so a print error can't lose it
+    if args.junit:
+        Path(args.junit).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.junit).write_text(to_junit(result), encoding="utf-8")
     print("\n" + to_markdown(result))
-    print(f"Report saved: {md_path}\nJSON:         {json_path}")
+    print(f"Report saved: {md_path}\nJSON:         {json_path}\nJUnit XML:    {args.junit or md_path.with_suffix('.xml')}")
     return EXIT[result.verdict]
 
 

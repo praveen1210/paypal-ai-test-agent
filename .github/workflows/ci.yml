@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Lint and offline tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: pytest -q --junitxml=test-results.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: test-results.xml
+
+  # Example of using the agent itself as a CI quality gate against the PayPal sandbox.
+  # Runs only when started by hand and the repo has the secrets configured.
+  sandbox-suite:
+    name: AI payment test suite (sandbox)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      PAYPAL_CLIENT_ID: ${{ secrets.PAYPAL_CLIENT_ID }}
+      PAYPAL_CLIENT_SECRET: ${{ secrets.PAYPAL_CLIENT_SECRET }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL || 'https://api.anthropic.com' }}
+      ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL || 'claude-haiku-5.5' }}
+      ANTHROPIC_FALLBACKS: "off"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e .
+      - run: python scripts/run_suite.py --junit reports/junit-suite.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: payment-test-reports
+          path: reports/

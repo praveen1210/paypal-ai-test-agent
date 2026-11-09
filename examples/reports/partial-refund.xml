@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="payagent" tests="31" failures="0" errors="0">
+  <testsuite name="Test a partial refund on a captured order" tests="31" failures="0" errors="0" skipped="0" timestamp="2026-11-09T16:47:52+00:00" time="37.0">
+    <properties>
+      <property name="verdict" value="PASS" />
+      <property name="model" value="claude-haiku-5.5" />
+      <property name="api_steps" value="9" />
+    </properties>
+    <testcase classname="payagent.create_order" name="S1: create_order returns HTTP 2xx" />
+    <testcase classname="payagent.create_order" name="S1: Order id is returned" />
+    <testcase classname="payagent.create_order" name="S1: Order status is valid after create" />
+    <testcase classname="payagent.create_order" name="S1: Order amount matches request" />
+    <testcase classname="payagent.create_order" name="S1: Order currency matches request" />
+    <testcase classname="payagent.get_capture" name="S2: get_capture returns HTTP 2xx" />
+    <testcase classname="payagent.get_capture" name="S2: Fetched resource id matches" />
+    <testcase classname="payagent.refund_capture" name="S3: refund_capture returns HTTP 2xx" />
+    <testcase classname="payagent.refund_capture" name="S3: Refund status is COMPLETED or PENDING" />
+    <testcase classname="payagent.refund_capture" name="S3: Refunded amount matches request" />
+    <testcase classname="payagent.get_refund" name="S4: get_refund returns HTTP 2xx" />
+    <testcase classname="payagent.get_refund" name="S4: Fetched resource id matches" />
+    <testcase classname="payagent.get_capture" name="S5: get_capture returns HTTP 2xx" />
+    <testcase classname="payagent.get_capture" name="S5: Fetched resource id matches" />
+    <testcase classname="payagent.refund_capture" name="S6: refund_capture is rejected with a 4xx error" />
+    <testcase classname="payagent.refund_capture" name="S6: Error body has PayPal 'name' field" />
+    <testcase classname="payagent.refund_capture" name="S6: PayPal debug_id returned for support tracing (header or body)" />
+    <testcase classname="payagent.refund_capture" name="S6: Error issue code is REFUND_AMOUNT_EXCEEDED" />
+    <testcase classname="payagent.refund_capture" name="S7: refund_capture returns HTTP 2xx" />
+    <testcase classname="payagent.refund_capture" name="S7: Refund status is COMPLETED or PENDING" />
+    <testcase classname="payagent.refund_capture" name="S7: Refunded amount matches request" />
+    <testcase classname="payagent.refund_capture" name="S8: refund_capture is rejected with a 4xx error" />
+    <testcase classname="payagent.refund_capture" name="S8: Error body has PayPal 'name' field" />
+    <testcase classname="payagent.refund_capture" name="S8: PayPal debug_id returned for support tracing (header or body)" />
+    <testcase classname="payagent.refund_capture" name="S8: Error issue code is CAPTURE_FULLY_REFUNDED" />
+    <testcase classname="payagent.get_capture" name="S9: get_capture returns HTTP 2xx" />
+    <testcase classname="payagent.get_capture" name="S9: Fetched resource id matches" />
+    <testcase classname="payagent.get_capture" name="S5: Capture status is PARTIALLY_REFUNDED after an 8.00 refund on a 20.00 capture" />
+    <testcase classname="payagent.get_refund" name="S4: First refund reports total refunded 8.00" />
+    <testcase classname="payagent.refund_capture" name="S7: Cumulative total refunded is 20.00 after the 12.00 refund" />
+    <testcase classname="payagent.get_capture" name="S9: Capture status is REFUNDED once fully refunded" />
+    <system-out>Partial refund on a captured order behaves correctly in the PayPal sandbox. A 20.00 USD card-funded order (order 603965450M1249740, capture 1G2950341L0926923) was partially refunded 8.00 (refund 83R28259SF490483K, COMPLETED). The capture moved to PARTIALLY_REFUNDED. An over-refund of 13.00 against 12.00 remaining was rejected with REFUND_AMOUNT_EXCEEDED. A refund of the remaining 12.00 succeeded (refund 8LH69773LF956593X), cumulative total refunded reached 20.00, and the capture became REFUNDED. A further refund attempt was rejected with CAPTURE_FULLY_REFUNDED. All built-in and goal-specific assertions passed.
+
+[INFO] Partial refund flow works as expected: An 8.00 partial refund on a 20.00 capture returned COMPLETED, the capture status changed to PARTIALLY_REFUNDED, and the refund's total_refunded_amount reported 8.00. Verified via S3, S4, S5.
+
+[INFO] Over-refund correctly rejected: Refunding 13.00 when only 12.00 remained returned HTTP 422 with REFUND_AMOUNT_EXCEEDED, as documented.
+
+[INFO] Remaining balance refund and full-refund state correct: Refunding the exact remaining 12.00 succeeded with cumulative total 20.00. The capture then moved to REFUNDED, and a further refund was rejected with CAPTURE_FULLY_REFUNDED.
+
+[INFO] Coverage gaps: Not covered: refunds in a different currency (REFUND_CAPTURE_CURRENCY_MISMATCH), refunds of zero or negative amounts, idempotency via PayPal-Request-Id on retried refunds, refunds on PayPal-wallet (non-card) orders, and the get_order view of refund status. The test also did not check the 'up' order link or the order-level status after refund.</system-out>
+  </testsuite>
+</testsuites>

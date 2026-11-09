@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="payagent" tests="30" failures="0" errors="0">
+  <testsuite name="Authorize 40 USD, capture 25 as a partial capture, then void the rest and check the states" tests="30" failures="0" errors="0" skipped="0" timestamp="2026-11-09T16:49:29+00:00" time="36.0">
+    <properties>
+      <property name="verdict" value="PASS" />
+      <property name="model" value="claude-haiku-5.5" />
+      <property name="api_steps" value="8" />
+    </properties>
+    <testcase classname="payagent.create_order" name="S1: create_order returns HTTP 2xx" />
+    <testcase classname="payagent.create_order" name="S1: Order id is returned" />
+    <testcase classname="payagent.create_order" name="S1: Order status is valid after create" />
+    <testcase classname="payagent.create_order" name="S1: Order amount matches request" />
+    <testcase classname="payagent.create_order" name="S1: Order currency matches request" />
+    <testcase classname="payagent.capture_authorization" name="S2: capture_authorization returns HTTP 2xx" />
+    <testcase classname="payagent.capture_authorization" name="S2: Capture status is COMPLETED" />
+    <testcase classname="payagent.capture_authorization" name="S2: Captured amount matches request" />
+    <testcase classname="payagent.get_authorization" name="S3: get_authorization returns HTTP 2xx" />
+    <testcase classname="payagent.get_authorization" name="S3: Fetched resource id matches" />
+    <testcase classname="payagent.void_authorization" name="S4: void_authorization returns HTTP 2xx" />
+    <testcase classname="payagent.void_authorization" name="S4: Authorization status is VOIDED" />
+    <testcase classname="payagent.void_authorization" name="S5: void_authorization is rejected with a 4xx error" />
+    <testcase classname="payagent.void_authorization" name="S5: Error body has PayPal 'name' field" />
+    <testcase classname="payagent.void_authorization" name="S5: PayPal debug_id returned for support tracing (header or body)" />
+    <testcase classname="payagent.void_authorization" name="S5: Error issue code is PREVIOUSLY_VOIDED" />
+    <testcase classname="payagent.capture_authorization" name="S6: capture_authorization is rejected with a 4xx error" />
+    <testcase classname="payagent.capture_authorization" name="S6: Error body has PayPal 'name' field" />
+    <testcase classname="payagent.capture_authorization" name="S6: PayPal debug_id returned for support tracing (header or body)" />
+    <testcase classname="payagent.capture_authorization" name="S6: Error issue code is AUTHORIZATION_VOIDED" />
+    <testcase classname="payagent.get_capture" name="S7: get_capture returns HTTP 2xx" />
+    <testcase classname="payagent.get_capture" name="S7: Fetched resource id matches" />
+    <testcase classname="payagent.get_order" name="S8: get_order returns HTTP 2xx" />
+    <testcase classname="payagent.get_order" name="S8: Fetched resource id matches" />
+    <testcase classname="payagent.get_authorization" name="S3: Authorization is PARTIALLY_CAPTURED after 25.00 partial capture" />
+    <testcase classname="payagent.void_authorization" name="S4: Authorization is VOIDED after voiding the remainder" />
+    <testcase classname="payagent.capture_authorization" name="S2: Partial capture is not marked as final_capture" />
+    <testcase classname="payagent.get_order" name="S8: Order view shows the authorization as VOIDED" />
+    <testcase classname="payagent.get_order" name="S8: Order view shows the 25.00 capture still COMPLETED alongside the voided remainder" />
+    <testcase classname="payagent.get_capture" name="S7: Capture links back to the original authorization" />
+    <system-out>Tested the authorize 40 USD → partial capture 25 USD → void remainder flow in the PayPal sandbox. All checks passed. The order 67N85550R90517011 was card-funded at create time (status COMPLETED, authorization 53984335H1838011A CREATED for 40.00). A 25.00 partial capture (6WG29562W48281115, final_capture=false, COMPLETED) moved the authorization to PARTIALLY_CAPTURED. Voiding the remainder moved it to VOIDED. Negative tests passed: a second void returned PREVIOUSLY_VOIDED (422), and capturing the remaining 15.00 after the void returned AUTHORIZATION_VOIDED (422). The order view shows the authorization VOIDED and the 25.00 capture COMPLETED, and the capture links back to the authorization.
+
+[INFO] Partial capture then void behaves per spec: Authorization 40.00 → partial capture 25.00 (status PARTIALLY_CAPTURED) → void (status VOIDED). The 25.00 capture remains COMPLETED and is retained. Both negative tests returned the documented issue codes (PREVIOUSLY_VOIDED, AUTHORIZATION_VOIDED).
+
+[INFO] Observation: authorization amount still reports 40.00 after partial capture and void: The authorization resource's amount field stays at 40.00 after the 25.00 capture and the void. This is probably the originally authorized amount rather than a remaining balance, so it is not a defect, but integrators should derive the remaining balance from captures rather than from this field.
+
+[INFO] Coverage gaps: Not tested: a second partial capture before voiding, a capture above the authorized amount (MAX_CAPTURE_AMOUNT_EXCEEDED), refund of the 25.00 capture, the 'authorize' step as a separate API call (the card order was authorized at create time so authorize_order was skipped), and PayPal-wallet flows.</system-out>
+  </testsuite>
+</testsuites>

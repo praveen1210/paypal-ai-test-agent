@@ -22,7 +22,7 @@ def _last_result(messages):
 
 
 class ScriptedClaude:
-    """Plays the role of the model: plan -> create -> capture -> partial refund -> over-refund -> finish."""
+    """Plays the role of the model: plan -> create -> double capture -> partial refund -> over-refund -> finish."""
 
     def __init__(self):
         self.turn = 0
@@ -38,9 +38,12 @@ class ScriptedClaude:
         elif self.turn == 2:
             blocks = [_tool("create_order", amount="10.00", payment_method="card")]
         elif self.turn == 3:
-            blocks = [_tool("capture_order", order_id=body["id"])]
-        elif self.turn == 4:
+            # Card orders are captured at create time, so a second capture must be rejected.
+            assert body["status"] == "COMPLETED"
             self.capture_id = body["purchase_units"][0]["payments"]["captures"][0]["id"]
+            blocks = [_tool("capture_order", order_id=body["id"], expect="error",
+                            expected_issue="ORDER_ALREADY_CAPTURED")]
+        elif self.turn == 4:
             blocks = [_tool("refund_capture", capture_id=self.capture_id, amount="4.00")]
         elif self.turn == 5:
             blocks = [_tool("refund_capture", capture_id=self.capture_id, amount="7.00", expect="error",

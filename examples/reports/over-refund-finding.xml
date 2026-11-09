@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="payagent" tests="23" failures="5" errors="0">
+  <testsuite name="After refunding 10 of a 20 USD capture, a refund request for 20 USD must be rejected rather than partially applied" tests="23" failures="5" errors="0" skipped="0" timestamp="2026-11-08T18:38:08+00:00" time="36.0">
+    <properties>
+      <property name="verdict" value="FAIL" />
+      <property name="model" value="claude-haiku-5.5" />
+      <property name="api_steps" value="7" />
+    </properties>
+    <testcase classname="payagent.create_order" name="S1: create_order returns HTTP 2xx" />
+    <testcase classname="payagent.create_order" name="S1: Order id is returned" />
+    <testcase classname="payagent.create_order" name="S1: Order status is valid after create" />
+    <testcase classname="payagent.create_order" name="S1: Order amount matches request" />
+    <testcase classname="payagent.create_order" name="S1: Order currency matches request" />
+    <testcase classname="payagent.get_capture" name="S2: get_capture returns HTTP 2xx" />
+    <testcase classname="payagent.get_capture" name="S2: Fetched resource id matches" />
+    <testcase classname="payagent.refund_capture" name="S3: refund_capture returns HTTP 2xx" />
+    <testcase classname="payagent.refund_capture" name="S3: Refund status is COMPLETED or PENDING" />
+    <testcase classname="payagent.refund_capture" name="S3: Refunded amount matches request" />
+    <testcase classname="payagent.get_capture" name="S4: get_capture returns HTTP 2xx" />
+    <testcase classname="payagent.get_capture" name="S4: Fetched resource id matches" />
+    <testcase classname="payagent.refund_capture" name="S5: refund_capture is rejected with a 4xx error">
+      <failure type="AssertionError" message="expected &quot;4xx&quot;, got 201">step=S5 source=auto</failure>
+    </testcase>
+    <testcase classname="payagent.refund_capture" name="S5: Error body has PayPal 'name' field">
+      <failure type="AssertionError" message="expected &quot;exists&quot;, got &quot;&lt;missing&gt;&quot;">step=S5 source=auto</failure>
+    </testcase>
+    <testcase classname="payagent.refund_capture" name="S5: PayPal debug_id returned for support tracing (header or body)" />
+    <testcase classname="payagent.refund_capture" name="S5: Error issue code is REFUND_AMOUNT_EXCEEDED">
+      <failure type="AssertionError" message="expected &quot;REFUND_AMOUNT_EXCEEDED&quot;, got []">step=S5 source=auto</failure>
+    </testcase>
+    <testcase classname="payagent.get_capture" name="S6: get_capture returns HTTP 2xx" />
+    <testcase classname="payagent.get_capture" name="S6: Fetched resource id matches" />
+    <testcase classname="payagent.get_refund" name="S7: get_refund returns HTTP 2xx" />
+    <testcase classname="payagent.get_refund" name="S7: Fetched resource id matches" />
+    <testcase classname="payagent.get_capture" name="S4: Capture is PARTIALLY_REFUNDED after the 10.00 partial refund" />
+    <testcase classname="payagent.refund_capture" name="S5: Over-refund of 20.00 after 10.00 refunded must return a 4xx error">
+      <failure type="AssertionError" message="expected 400, got 201">step=S5 source=agent</failure>
+    </testcase>
+    <testcase classname="payagent.get_capture" name="S6: Capture should still be PARTIALLY_REFUNDED (10.00 remaining) if the over-refund was rejected">
+      <failure type="AssertionError" message="expected &quot;PARTIALLY_REFUNDED&quot;, got &quot;REFUNDED&quot;">step=S6 source=agent</failure>
+    </testcase>
+    <system-out>The core business rule failed. After a valid 10.00 partial refund on a 20.00 capture, a second refund request for 20.00 was not rejected. PayPal returned HTTP 201 and created refund 02P44233KF644720T for 10.00 (the remaining balance), so the request was partially applied. The capture is now fully REFUNDED with total refunded 20.00. Setup steps passed: order 7X066593VK660805U was COMPLETED, capture 108361158K599311B was 20.00 COMPLETED, and the first 10.00 refund (2FS14489L8071434U) succeeded and left the capture PARTIALLY_REFUNDED.
+
+[CRITICAL] Over-refund accepted and silently truncated to remaining balance: After refund 2FS14489L8071434U (10.00) on capture 108361158K599311B (20.00), a refund request for 20.00 returned HTTP 201 instead of a 4xx REFUND_AMOUNT_EXCEEDED error. The refund created (02P44233KF644720T) is for 10.00, not 20.00, so the requested amount was reduced to the remaining balance without telling the caller. The capture is now REFUNDED with total_refunded_amount 20.00. The likely cause is that the refund handler caps the amount to the remaining refundable balance instead of validating the request against it and rejecting it. Developers should check the refund validation path in the sandbox integration and confirm whether this is a PayPal sandbox behaviour or a merchant-side or proxy-side bug. Business impact: a merchant or support agent who asks for 20.00 back gets 10.00 back with a success response, so the customer's expected refund amount and the books disagree, and the refund ledger no longer matches the request. Customers could be under-refunded without notice, and any reconciliation that assumes requested equals processed will break.
+
+[MAJOR] Over-refund test expectation not met (expected 4xx, got 201): The negative check required an error with REFUND_AMOUNT_EXCEEDED and the call returned 201 Created. The error-code check also failed because no details[] issue was returned. This is the same defect as above, shown at the API response level.</system-out>
+  </testsuite>
+</testsuites>

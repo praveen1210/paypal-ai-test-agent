@@ -17,5 +17,13 @@ services:
         sync: false
       - key: PAYPAL_BASE_URL
         value: https://api-m.sandbox.paypal.com
+      - key: ANTHROPIC_BASE_URL
+        sync: false
       - key: ANTHROPIC_MODEL
-        value: claude-opus-5-5
+        value: claude-haiku-5.5
+      - key: ANTHROPIC_FALLBACKS
+        value: "off"
+      - key: DEMO_MAX_CONCURRENT
+        value: "2"
+      - key: DEMO_RUNS_PER_IP
+        value: "6"
