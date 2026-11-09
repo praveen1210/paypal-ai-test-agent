@@ -46,3 +46,14 @@ def test_web_returns_429_when_busy(monkeypatch):
     monkeypatch.setattr(web, "limiter", DemoLimiter(max_concurrent=0, runs_per_window=5, window_seconds=600))
     resp = TestClient(web.app).get("/api/run/stream", params={"goal": "test a refund", "fake": "true"})
     assert resp.status_code == 429 and resp.headers["retry-after"] == "30"
+
+
+def test_blank_base_url_is_treated_as_unset(monkeypatch):
+    import os
+
+    import payagent.config as config
+
+    monkeypatch.setattr(config, "load_dotenv", lambda **_: None)
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "  ")
+    config.Settings.from_env()
+    assert "ANTHROPIC_BASE_URL" not in os.environ

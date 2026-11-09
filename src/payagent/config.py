@@ -31,6 +31,9 @@ class Settings:
         # The project's .env wins over inherited shell variables (e.g. a stray ANTHROPIC_BASE_URL);
         # hosted deploys have no .env, so their dashboard env vars apply unchanged.
         load_dotenv(override=True)
+        # A blank ANTHROPIC_BASE_URL (e.g. an empty field in Render or .env) would break the SDK; treat it as unset.
+        if not os.environ.get("ANTHROPIC_BASE_URL", "x").strip():
+            os.environ.pop("ANTHROPIC_BASE_URL", None)
         return cls(
             paypal_client_id=os.getenv("PAYPAL_CLIENT_ID", ""),
             paypal_client_secret=os.getenv("PAYPAL_CLIENT_SECRET", ""),
