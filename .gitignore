@@ -22,3 +22,6 @@ dist/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Demo video work files (raw recordings, voiceover)
+/video/
